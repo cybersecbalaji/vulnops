@@ -146,3 +146,14 @@ Tests are fully isolated — no live Postgres or Redis required.
 - For new API routes, add endpoint tests covering: happy path, 404/400 error cases, role/auth enforcement, org-scoping (no cross-tenant data leakage).
 - For new CSV parsers or format handlers, add round-trip tests using `csv.DictWriter` helpers (never join values with raw commas — values may contain commas).
 - Frontend TypeScript changes must pass `npm run type-check` with zero errors.
+
+## Dependency Security Policy
+
+**Before every build or deployment, check for vulnerable dependencies.**
+
+- **Frontend**: run `npm audit --audit-level=high` from `frontend/`. Any HIGH or CRITICAL vulnerability must be resolved before committing.
+  - Upgrade the affected package: `npm install <package>@<safe-version> --legacy-peer-deps`
+  - Update both `package.json` and commit the updated `package-lock.json`
+- **Backend**: run `pip-audit` (or `safety check`) from `backend/`. Any HIGH/CRITICAL finding must be resolved.
+- Railway (and most CI platforms) block deployments when known CVEs are present in the lockfile — a failing build due to a vulnerable dependency means the lockfile must be updated locally and pushed.
+- Never bypass security scanners with `--ignore` flags unless a patch is genuinely unavailable and the risk is explicitly accepted in writing.
