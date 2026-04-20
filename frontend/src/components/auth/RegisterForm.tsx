@@ -169,14 +169,6 @@ export function RegisterForm() {
                 <PasswordStrengthIndicator password={password} />
               </div>
 
-              <Alert variant="default" className="border-blue-200 bg-blue-50 text-blue-800 text-xs">
-                <AlertDescription>
-                  Your password is checked against the HaveIBeenPwned database
-                  using k-anonymity (only the first 5 characters of your
-                  password hash are sent — your password never leaves your device).
-                </AlertDescription>
-              </Alert>
-
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account…" : "Create account"}
               </Button>
