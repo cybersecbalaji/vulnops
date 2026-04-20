@@ -1,0 +1,34 @@
+# ── Secrets — NEVER commit these ─────────────────────────────────────────────
+backend/.env
+frontend/.env.local
+*.pem
+*.key
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-data/
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+.DS_Store

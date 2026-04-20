@@ -1,0 +1,121 @@
+version: "3.9"
+
+# VulnOps Triage Console — production / self-hosted deployment
+#
+# Differences from docker-compose.yml:
+#   - No live-reload mounts
+#   - Frontend built at image build time (not dev server)
+#   - Backend runs with 2 Uvicorn workers (not --reload)
+#   - Postgres password read from env var (not hardcoded)
+#   - Caddy reverse proxy handles HTTPS + TLS termination
+#
+# Usage:
+#   1. Set environment variables (or export them before running):
+#        export POSTGRES_PASSWORD=<strong-random-password>
+#        export DOMAIN=yourdomain.com
+#   2. Populate backend/.env (run `python scripts/setup.py` on a local machine,
+#      then copy the generated .env to the server)
+#   3. docker compose -f docker-compose.prod.yml up -d
+#   4. docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
+
+services:
+  # ── PostgreSQL 16 ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: vulnops_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vulnops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: vulnops
+    expose:
+      - "5432"                    # Internal only — not published to host
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vulnops -d vulnops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis 7 ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: vulnops_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --requirepass ${REDIS_PASSWORD:-}
+    expose:
+      - "6379"                    # Internal only
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── FastAPI backend ────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vulnops_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://vulnops:${POSTGRES_PASSWORD}@db:5432/vulnops
+      REDIS_URL: redis://redis:6379/0
+      APP_ENV: production
+      DEBUG: "false"
+    env_file:
+      - ./backend/.env
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # No volume mount — code is baked into the image
+
+  # ── Next.js frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod      # Build a production Next.js image
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.yourdomain.com}
+    container_name: vulnops_frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  # ── Caddy reverse proxy (HTTPS, auto TLS) ──────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: vulnops_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

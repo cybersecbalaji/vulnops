@@ -1,0 +1,18 @@
+# Caddy reverse proxy — automatic HTTPS via Let's Encrypt
+# Replace yourdomain.com with your actual domain.
+
+yourdomain.com {
+    # Frontend
+    reverse_proxy frontend:3000
+}
+
+api.yourdomain.com {
+    # Backend API
+    reverse_proxy backend:8000
+
+    # Security headers (Caddy adds HSTS automatically)
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+    }
+}
