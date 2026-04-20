@@ -83,12 +83,8 @@ export default function HomePage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-slate-950" />;
-  }
-
   if (isAuthenticated) {
-    return null;
+    return <div className="min-h-screen bg-slate-950" />;
   }
 
   return (

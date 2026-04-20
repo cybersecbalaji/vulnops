@@ -75,7 +75,8 @@
       "Bash(powershell -Command 'Get-WmiObject Win32_Process | Where-Object { $_.ProcessId -eq 23884 } | Select-Object ProcessId, CommandLine')",
       "Bash(docker restart *)",
       "Bash(powershell -Command \"Invoke-WebRequest -Uri 'http://localhost:3000' -UseBasicParsing 2>&1 | Select-Object StatusCode\")",
-      "Bash(docker exec *)"
+      "Bash(docker exec *)",
+      "Bash(npx ts-node *)"
     ]
   }
 }
