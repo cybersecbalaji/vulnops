@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "VulnOps Triage Console",
-  description: "AI-powered vulnerability operations triage platform",
+  description: "AI-powered vulnerability triage platform for security teams",
   robots: "noindex, nofollow", // Security tool — never index
 };
 
