@@ -17,10 +17,7 @@ import {
 } from "./auth";
 import type { MeResponse, TokenResponse } from "@/types/auth";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api/v1`
-    : "/api/v1"; // falls back to Next.js rewrite in dev
+const API_BASE = "/api/v1";
 
 // ── Token refresh ─────────────────────────────────────────────────────────────
 
