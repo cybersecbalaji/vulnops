@@ -170,7 +170,7 @@ export default function AssetsPage() {
       if (form.tags.trim()) payload.tags = form.tags.trim();
       if (form.notes.trim()) payload.notes = form.notes.trim();
 
-      await api.post("/assets", payload);
+      await api.post("/assets/", payload);
       setAddOpen(false);
       setForm({ ...EMPTY_FORM });
       setMsg("Asset added.");
