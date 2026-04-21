@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, getValidToken } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,15 +186,13 @@ export default function FindingsPage() {
         rapid7: "/vulnerabilities/ingest/rapid7",
       };
       const endpoint = endpointMap[uploadFormat] ?? "/vulnerabilities/ingest/csv";
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/v1${endpoint}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${(await import("@/lib/auth")).getAccessToken() ?? ""}` },
-          credentials: "include",
-          body: fd,
-        },
-      );
+      const token = await getValidToken();
+      const res = await fetch(`/api/v1${endpoint}`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+        body: fd,
+      });
       const data = await res.json();
       if (!res.ok) {
         throw new ApiError(res.status, data.detail ?? "Upload failed.");

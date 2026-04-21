@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, getValidToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -170,7 +170,7 @@ export default function AssetsPage() {
       if (form.tags.trim()) payload.tags = form.tags.trim();
       if (form.notes.trim()) payload.notes = form.notes.trim();
 
-      await api.post("/assets/", payload);
+      await api.post("/assets", payload);
       setAddOpen(false);
       setForm({ ...EMPTY_FORM });
       setMsg("Asset added.");
@@ -193,15 +193,13 @@ export default function AssetsPage() {
     try {
       const fd = new FormData();
       fd.append("file", importFile);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? ""}/api/v1/assets/import/csv`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${(await import("@/lib/auth")).getAccessToken() ?? ""}` },
-          credentials: "include",
-          body: fd,
-        },
-      );
+      const token = await getValidToken();
+      const res = await fetch("/api/v1/assets/import/csv", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+        body: fd,
+      });
       const data = await res.json();
       if (!res.ok) throw new ApiError(res.status, data.detail ?? "Import failed.");
       setImportResult(data as ImportResult);

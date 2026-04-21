@@ -11,7 +11,7 @@ import {
   BarChart3, ChevronLeft, Download, RefreshCw, Loader2,
   ShieldAlert, Bug, AlertTriangle,
 } from "lucide-react";
-import { getAccessToken } from "@/lib/auth";
+import { getValidToken } from "@/lib/api";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface DashboardStats {
@@ -65,8 +65,7 @@ export default function ReportsPage() {
   async function downloadPDF() {
     setDownloading(true);
     try {
-      // Use fetch directly to handle binary response — get token from in-memory store
-      const token = getAccessToken();
+      const token = await getValidToken();
       const resp = await fetch("/api/v1/reports/dashboard/pdf", {
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},

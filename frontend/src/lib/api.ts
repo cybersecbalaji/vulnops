@@ -70,6 +70,8 @@ async function _getValidToken(): Promise<string | null> {
   return getAccessToken();
 }
 
+export { _getValidToken as getValidToken };
+
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
