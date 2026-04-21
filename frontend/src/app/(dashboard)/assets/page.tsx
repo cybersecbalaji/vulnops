@@ -137,7 +137,7 @@ export default function AssetsPage() {
     setListError(null);
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
-      const data = await api.get<AssetListResponse>(`/assets/?${params}`);
+      const data = await api.get<AssetListResponse>(`/assets?${params}`);
       setAssets(data.items);
       setTotal(data.total);
     } catch (e) {

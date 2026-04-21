@@ -76,7 +76,9 @@
       "Bash(docker restart *)",
       "Bash(powershell -Command \"Invoke-WebRequest -Uri 'http://localhost:3000' -UseBasicParsing 2>&1 | Select-Object StatusCode\")",
       "Bash(docker exec *)",
-      "Bash(npx ts-node *)"
+      "Bash(npx ts-node *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

@@ -149,7 +149,7 @@ export default function FindingsPage() {
       });
       if (filterSeverity) params.set("severity", filterSeverity);
       if (filterStatus) params.set("status", filterStatus);
-      const data = await api.get<ListResponse>(`/vulnerabilities/?${params}`);
+      const data = await api.get<ListResponse>(`/vulnerabilities?${params}`);
       setVulns(data.items);
       setTotal(data.total);
       // Prune selections that no longer exist on this page.
