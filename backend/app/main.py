@@ -49,8 +49,6 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc" if settings.DEBUG else None,
         openapi_url="/api/openapi.json" if settings.DEBUG else None,
         lifespan=lifespan,
-        # Prevent trailing-slash 308 redirects from leaking internal URLs through the proxy
-        redirect_slashes=False,
     )
 
     _add_security_headers(app)

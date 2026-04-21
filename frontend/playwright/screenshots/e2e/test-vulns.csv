@@ -1,0 +1,6 @@
+cve_id,title,description,severity,cvss_score,affected_component
+CVE-2023-44487,HTTP/2 Rapid Reset Attack,Allows remote DoS via stream cancellation,critical,7.5,nginx/1.18.0
+CVE-2021-44228,Log4Shell RCE,JNDI injection vulnerability in Log4j,critical,10.0,log4j-core:2.14.1
+CVE-2022-22965,Spring4Shell,RCE via data binding in Spring Framework,high,9.8,spring-core:5.3.17
+CVE-2023-23397,Outlook NTLM Leak,NTLM credential leak via crafted email,high,9.8,Microsoft Outlook
+CVE-2022-47966,ManageEngine RCE,Pre-auth RCE in ManageEngine products,critical,9.8,ManageEngine

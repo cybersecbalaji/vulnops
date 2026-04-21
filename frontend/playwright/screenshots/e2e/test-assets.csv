@@ -1,0 +1,4 @@
+name,asset_type,ip_address,hostname,environment,criticality,internet_facing,owner
+web-prod-01,server,10.0.1.10,web-prod-01.corp,production,critical,true,security-team
+db-prod-01,database,10.0.1.20,db-prod-01.corp,production,critical,false,dba-team
+dev-laptop-01,endpoint,192.168.1.50,,development,low,false,dev-team

@@ -78,7 +78,8 @@
       "Bash(docker exec *)",
       "Bash(npx ts-node *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git add *)"
     ]
   }
 }

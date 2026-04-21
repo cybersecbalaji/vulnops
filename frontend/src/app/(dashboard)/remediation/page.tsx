@@ -93,7 +93,7 @@ function RemediationInner() {
   const fetchVulns = useCallback(async () => {
     setVulnsLoading(true);
     try {
-      const data = await api.get<ListResponse>("/vulnerabilities?page=1&page_size=200");
+      const data = await api.get<ListResponse>("/vulnerabilities/?page=1&page_size=200");
       setVulns(data.items);
     } catch {
       // Best-effort — dropdown will just be empty
