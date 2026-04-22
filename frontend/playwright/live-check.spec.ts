@@ -179,7 +179,10 @@ test("Live app workflow check", async ({ page }) => {
   console.log("\n═══ 7. FINDINGS — expand & enrich ═══");
   const firstRow = page.locator("tbody tr").first();
   if (await firstRow.count() > 0) {
-    await firstRow.click();
+    // Scroll past sticky header then click — sticky thead intercepts pointer events at top
+    await firstRow.scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 80));
+    await firstRow.click({ force: true });
     await page.waitForTimeout(1000);
     await shot(page, "07_row_expanded");
 
