@@ -86,7 +86,9 @@
       "Bash(timeout 260 bash -c \"while ! grep -q 'passed\\\\|failed\\\\|═══ 12\\\\.' 'C:\\\\Users\\\\rbala\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-rbala-Vuln-ops\\\\ddbbed9f-3ada-41ac-98d0-d3d3dc90ec50\\\\tasks\\\\b62fjvm0x.output' 2>/dev/null; do sleep 10; done\")",
       "Bash(pip install *)",
       "Bash(python -m pytest tests/test_scanner_connectors.py -v)",
-      "Bash(python -m pytest tests/ -q)"
+      "Bash(python -m pytest tests/ -q)",
+      "Bash(node -e \"const l = require\\('/c/Users/rbala/Vuln_ops/frontend/node_modules/lucide-react'\\); const icons = ['FileInput','Radar','ListOrdered','GitPullRequestArrow','BarChart3','ScrollText','Plug','Lock','KeyRound','ShieldCheck','FileCheck2','ArrowUpRight','Github','ArrowRight','Shield','Moon','Sun']; icons.forEach\\(i => console.log\\(i, !!l[i]\\)\\)\")",
+      "Bash(node -e \"const l = require\\('./node_modules/lucide-react'\\); const icons = ['FileInput','Radar','ListOrdered','GitPullRequestArrow','BarChart3','ScrollText','Plug','Lock','KeyRound','ShieldCheck','FileCheck2','ArrowUpRight','Github','ArrowRight','Shield']; icons.forEach\\(i => console.log\\(i, !!l[i]\\)\\)\")"
     ]
   }
 }

@@ -1,446 +1,597 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
-  Upload, Sparkles, ShieldAlert, Server, FileText, ClipboardList,
-  ArrowRight, Shield, CheckCircle2, Zap, Lock,
+  Shield, FileInput, Radar, ListOrdered, GitPullRequestArrow,
+  BarChart3, ScrollText, Plug, Lock, KeyRound, ShieldCheck,
+  FileCheck2, ArrowUpRight, Github, ArrowRight,
 } from "lucide-react";
 
-// ── Feature data ──────────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
   {
-    icon: Upload,
-    title: "Scanner import",
-    desc: "Import directly from Nessus, Tenable, Qualys, or Rapid7 — no manual reformatting. CMDB imports from Intune, SCCM, Axonius, and CrowdStrike supported.",
+    icon: FileInput,
+    title: "Ingest",
+    desc: "Pull findings from scanner APIs directly — no CSV exports, no manual reformatting. Nessus, Tenable, Qualys, and more.",
   },
   {
-    icon: Sparkles,
-    title: "AI-powered triage",
-    desc: "Every finding is scored by an LLM with full rationale and a five-tier priority. Supports OpenAI, Anthropic, Gemini, and more.",
-  },
-  {
-    icon: ShieldAlert,
-    title: "KEV + EPSS enrichment",
+    icon: Radar,
+    title: "Enrich",
     desc: "Auto-enriched with CISA KEV catalog and FIRST EPSS probability scores. Know which vulns are actively exploited.",
   },
   {
-    icon: Server,
-    title: "Asset context",
-    desc: "Link findings to your asset register. Internet-facing critical assets score higher — so your team focuses on what actually matters.",
+    icon: ListOrdered,
+    title: "Prioritize",
+    desc: "LLM triage agent scores every finding against your asset context, EPSS, KEV status, and CVSS with full written rationale.",
   },
   {
-    icon: FileText,
-    title: "Remediation tickets",
-    desc: "One-click Markdown or Jira ticket drafts from the AI rationale. Generate board-ready reports in seconds.",
+    icon: GitPullRequestArrow,
+    title: "Remediate",
+    desc: "One-click Markdown or Jira ticket drafts from the AI rationale. Move from finding to fix without switching tabs.",
   },
   {
-    icon: ClipboardList,
-    title: "Full audit trail",
-    desc: "Every action logged with timestamp, user, and org scope. Satisfy compliance and demonstrate due diligence.",
+    icon: BarChart3,
+    title: "Report",
+    desc: "Board-ready dashboard stats and PDF exports aggregated across all scanners. Demonstrate progress, not just coverage.",
   },
+  {
+    icon: ScrollText,
+    title: "Audit",
+    desc: "Every action logged with timestamp, user, and org scope. Immutable. Satisfies compliance without a separate tool.",
+  },
+];
+
+const CONNECTORS = [
+  { name: "tenable.io", status: "live" },
+  { name: "qualys vmdr", status: "live" },
+  { name: "rapid7 insightvm", status: "beta" },
+  { name: "nessus professional", status: "beta" },
+  { name: "microsoft defender", status: "beta" },
 ];
 
 const STEPS = [
   {
     n: "01",
-    title: "Ingest",
-    desc: "Upload from any scanner or paste a CVE list. Supports Nessus, Tenable, Qualys, Rapid7, and generic CSV/JSON.",
+    title: "Deploy",
+    desc: "Clone the repo, run setup.py, docker compose up. Running in under five minutes on any VPS or cloud instance.",
   },
   {
     n: "02",
-    title: "Prioritise",
-    desc: "AI scores each finding against your asset context, EPSS probability, CISA KEV status, and CVSS score.",
+    title: "Connect",
+    desc: "Add your scanner API credentials in Settings. Credentials are encrypted per-org — they never leave your instance.",
   },
   {
     n: "03",
-    title: "Act",
-    desc: "Draft remediation tickets, generate board reports, and track every finding through to closure.",
+    title: "Triage",
+    desc: "Findings are synced, enriched, and scored automatically. Your team sees only what needs attention, ranked by real risk.",
   },
 ];
 
-const STATS = [
-  { value: "1,100+", label: "KEV CVEs tracked" },
-  { value: "5", label: "AI providers supported" },
-  { value: "8", label: "Scanner & CMDB formats" },
-  { value: "100%", label: "Audit logged" },
+const SECURITY_CLAIMS = [
+  { icon: Lock, label: "Encrypted at rest", sub: "Per-org Fernet keys" },
+  { icon: KeyRound, label: "Per-org DEK", sub: "No shared key material" },
+  { icon: ShieldCheck, label: "RS256 JWT auth", sub: "15-min access tokens" },
+  { icon: FileCheck2, label: "Full audit log", sub: "Immutable, append-only" },
 ];
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const [stars, setStars] = useState<string>("—");
 
-  // Authenticated users go straight to dashboard
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.replace("/dashboard");
     }
   }, [isAuthenticated, isLoading, router]);
 
+  useEffect(() => {
+    fetch("https://api.github.com/repos/tekybala/vulnops", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.stargazers_count === "number") {
+          const n = d.stargazers_count;
+          setStars(n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (isAuthenticated) {
-    return <div className="min-h-screen bg-slate-950" />;
+    return <div className="min-h-screen bg-white dark:bg-[#0A0A0B]" />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* ── Navbar ── */}
-      <nav className="sticky top-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur-sm">
+    <div className="min-h-screen bg-white text-gray-900 dark:bg-[#0A0A0B] dark:text-gray-50">
+
+      {/* ── Nav ── */}
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-[#0A0A0B]/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+          {/* Wordmark */}
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-              <Shield className="h-4.5 w-4.5 text-white" />
-            </div>
-            <span className="text-base font-bold tracking-tight text-white">VulnOps</span>
+            <Shield strokeWidth={1.5} className="h-5 w-5 text-gray-900 dark:text-gray-50" />
+            <span className="text-sm font-semibold tracking-tight">VulnOps</span>
+            <span className="hidden rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-400 sm:inline dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500">
+              Apache 2.0
+            </span>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Nav links */}
+          <nav className="hidden items-center gap-6 text-sm text-gray-500 md:flex dark:text-gray-400">
+            <a href="#features" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Product</a>
+            <a href="#connectors" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Integrations</a>
+            <a href="#deploy" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Self-host</a>
+            <a
+              href="https://github.com/tekybala/vulnops"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors"
+            >
+              GitHub
+            </a>
+          </nav>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
+              <button className="hidden rounded-md px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:block dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-50">
                 Sign in
-              </Button>
+              </button>
             </Link>
             <Link href="/register">
-              <Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white border-0">
-                Get started free
-              </Button>
+              <button className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                Get started
+              </button>
             </Link>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-slate-800/40">
-        {/* Background gradient orbs */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-40 left-1/4 h-[500px] w-[500px] rounded-full bg-blue-600/10 blur-3xl" />
-          <div className="absolute top-20 right-1/4 h-[400px] w-[400px] rounded-full bg-violet-600/8 blur-3xl" />
-        </div>
+      <section className="relative overflow-hidden border-b border-gray-200 dark:border-gray-800">
+        {/* Dot grid background */}
+        <div className="hero-dot-grid pointer-events-none absolute inset-0" />
 
-        <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-20 text-center">
-          {/* Eyebrow badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-300">
-            <Zap className="h-3 w-3" />
-            AI-powered vulnerability triage
+        <div className="relative mx-auto max-w-5xl px-6 pb-28 pt-24 text-center">
+          {/* Eyebrow pill */}
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 font-mono text-xs font-medium text-violet-700 dark:border-violet-800/50 dark:bg-violet-950/40 dark:text-violet-400">
+            Open source · Now with scanner APIs
           </div>
 
-          {/* Main headline */}
-          <h1 className="text-5xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl">
-            Know what to fix.
+          {/* Headline */}
+          <h1
+            className="mx-auto max-w-3xl text-5xl font-bold leading-[1.08] tracking-[-0.035em] text-gray-900 sm:text-6xl lg:text-[72px] dark:text-gray-50"
+          >
+            Triage vulnerabilities
             <br />
-            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
-              Fix what matters.
-            </span>
+            at the speed of scale.
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
-            VulnOps cuts through scanner noise with AI-powered triage — scoring every vulnerability
-            against your asset context, EPSS probability, and CISA KEV status so your team always
-            knows exactly what to remediate first.
+          {/* Subline */}
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+            The open-source vulnerability triage console.
+            Self-host in minutes, or use our hosted edition.
           </p>
 
-          {/* CTA buttons */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          {/* CTAs */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link href="/register">
-              <Button size="lg" className="h-12 bg-blue-600 hover:bg-blue-500 text-white px-8 border-0 text-base font-semibold">
-                Get started free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <button className="inline-flex h-11 items-center gap-2 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                Start self-hosting
+                <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+              </button>
             </Link>
             <Link href="/login">
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
-                Sign in to your workspace
-              </Button>
+              <button className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900">
+                View live demo
+                <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
+              </button>
             </Link>
-          </div>
-
-          {/* Trust signals */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500">
-            {["No credit card required", "Self-hostable", "Multi-tenant by design"].map(t => (
-              <span key={t} className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-500/70" />
-                {t}
-              </span>
-            ))}
-          </div>
-
-          {/* Dashboard mockup */}
-          <div className="relative mx-auto mt-16 max-w-4xl">
-            <div className="overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/60">
-              {/* Fake browser chrome */}
-              <div className="flex items-center gap-1.5 border-b border-slate-700/60 bg-slate-800/60 px-4 py-2.5">
-                <span className="h-3 w-3 rounded-full bg-red-500/70" />
-                <span className="h-3 w-3 rounded-full bg-yellow-500/70" />
-                <span className="h-3 w-3 rounded-full bg-green-500/70" />
-                <span className="ml-3 flex-1 rounded bg-slate-700/60 px-3 py-0.5 text-left text-xs text-slate-500 font-mono">
-                  vulnops.app/findings
+            <a
+              href="https://github.com/tekybala/vulnops"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+            >
+              <Github strokeWidth={1.5} className="h-4 w-4" />
+              Star on GitHub
+              {stars !== "—" && (
+                <span className="ml-0.5 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                  {stars}
                 </span>
-              </div>
-              {/* Findings table mockup */}
-              <div className="p-4 text-left text-xs">
-                {/* Mini stat bar */}
-                <div className="mb-3 flex items-center gap-4 rounded-lg border border-slate-700/40 bg-slate-800/40 px-3 py-2 text-xs">
-                  <span className="text-slate-400">247 <span className="text-slate-500">findings</span></span>
-                  <span className="text-red-400 font-semibold">12 <span className="font-normal text-slate-500">immediate</span></span>
-                  <span className="text-orange-400 font-semibold">8 <span className="font-normal text-slate-500">KEV listed</span></span>
-                  <span className="text-green-400 font-semibold">61 <span className="font-normal text-slate-500">remediated</span></span>
-                </div>
-                {/* Table header */}
-                <div className="mb-1.5 grid grid-cols-[1.6fr_68px_52px_52px_52px_80px_84px] gap-2 border-b border-slate-700/40 pb-2 font-semibold text-slate-500 uppercase tracking-wide" style={{fontSize: "10px"}}>
-                  <span>CVE / Title</span>
-                  <span>Severity</span>
-                  <span>CVSS</span>
-                  <span>EPSS</span>
-                  <span>KEV</span>
-                  <span>AI Priority</span>
-                  <span>Status</span>
-                </div>
-                {/* Mock rows */}
-                {[
-                  {
-                    cve: "CVE-2021-44228", title: "Log4Shell — Apache Log4j RCE",
-                    sev: "critical", sevColor: "text-red-400 bg-red-950/60",
-                    cvss: "10.0", cvssColor: "text-red-400",
-                    epss: "97.3%", epssColor: "text-red-400 font-semibold",
-                    kev: true,
-                    pri: "● Immediate", priColor: "text-red-400",
-                    status: "open", statusColor: "text-slate-400",
-                  },
-                  {
-                    cve: "CVE-2024-3400", title: "PAN-OS Zero-Day — Command Injection",
-                    sev: "critical", sevColor: "text-red-400 bg-red-950/60",
-                    cvss: "10.0", cvssColor: "text-red-400",
-                    epss: "94.1%", epssColor: "text-red-400 font-semibold",
-                    kev: true,
-                    pri: "● Immediate", priColor: "text-red-400",
-                    status: "triaged", statusColor: "text-yellow-400",
-                  },
-                  {
-                    cve: "CVE-2023-34048", title: "VMware vCenter DCERPC Heap Overflow",
-                    sev: "critical", sevColor: "text-red-400 bg-red-950/60",
-                    cvss: "9.8", cvssColor: "text-red-400",
-                    epss: "88.6%", epssColor: "text-red-400 font-semibold",
-                    kev: true,
-                    pri: "● Immediate", priColor: "text-red-400",
-                    status: "remediated", statusColor: "text-green-400",
-                  },
-                  {
-                    cve: "CVE-2022-0847", title: "Dirty Pipe — Linux Kernel PrivEsc",
-                    sev: "high", sevColor: "text-orange-400 bg-orange-950/60",
-                    cvss: "7.8", cvssColor: "text-orange-400",
-                    epss: "31.4%", epssColor: "text-orange-400",
-                    kev: false,
-                    pri: "● This week", priColor: "text-orange-400",
-                    status: "open", statusColor: "text-slate-400",
-                  },
-                  {
-                    cve: "CVE-2023-44487", title: "HTTP/2 Rapid Reset DDoS",
-                    sev: "high", sevColor: "text-orange-400 bg-orange-950/60",
-                    cvss: "7.5", cvssColor: "text-orange-400",
-                    epss: "12.8%", epssColor: "text-slate-400",
-                    kev: false,
-                    pri: "● This week", priColor: "text-orange-400",
-                    status: "open", statusColor: "text-slate-400",
-                  },
-                ].map(row => (
-                  <div key={row.cve} className="grid grid-cols-[1.6fr_68px_52px_52px_52px_80px_84px] items-center gap-2 border-b border-slate-800/40 py-1.5 last:border-0">
-                    <div className="min-w-0">
-                      <span className="font-mono text-slate-300">{row.cve}</span>
-                      <p className="mt-0.5 text-slate-500 truncate">{row.title}</p>
-                    </div>
-                    <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold capitalize ${row.sevColor}`}>
-                      ● {row.sev}
-                    </span>
-                    <span className={`font-mono font-semibold ${row.cvssColor}`}>{row.cvss}</span>
-                    <span className={`font-mono ${row.epssColor}`}>{row.epss}</span>
-                    <span className={row.kev ? "font-semibold text-red-400" : "text-slate-600"}>
-                      {row.kev ? "Yes" : "No"}
-                    </span>
-                    <span className={`font-medium ${row.priColor}`}>{row.pri}</span>
-                    <span className={`capitalize font-medium ${row.statusColor}`}>{row.status}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* Glow under card */}
-            <div className="pointer-events-none absolute -bottom-4 left-1/2 h-12 w-3/4 -translate-x-1/2 rounded-full bg-blue-600/20 blur-2xl" />
+              )}
+            </a>
+          </div>
+
+          {/* Docker compose snippet */}
+          <div className="mx-auto mt-8 inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900">
+            <span className="font-mono text-xs text-gray-400 dark:text-gray-500">$</span>
+            <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+              docker compose up -d
+            </span>
+            <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+              # running in &lt;5 min
+            </span>
           </div>
         </div>
       </section>
 
-      {/* ── Trust bar ── */}
-      <section className="border-b border-slate-800/40 bg-slate-900/40 py-8">
+      {/* ── Scanner logo strip ── */}
+      <section className="border-b border-gray-200 py-8 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-6 text-center">
-          <p className="mb-6 text-xs font-medium uppercase tracking-widest text-slate-500">
-            Works with the scanners your team already uses
+          <p className="mb-6 font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            Integrates with the tools you already run
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            {["Nessus", "Tenable.io", "Qualys VMDR", "Rapid7 InsightVM", "CrowdStrike", "Microsoft Intune"].map(name => (
-              <span key={name} className="text-sm font-semibold text-slate-400 tracking-wide">{name}</span>
+          <div className="flex flex-wrap items-center justify-center gap-8 opacity-50 grayscale">
+            {["Tenable", "Qualys", "Rapid7", "Nessus", "Microsoft Defender"].map((name) => (
+              <span key={name} className="text-sm font-semibold tracking-wide text-gray-600 dark:text-gray-400">
+                {name}
+              </span>
             ))}
           </div>
         </div>
       </section>
 
       {/* ── Feature grid ── */}
-      <section className="border-b border-slate-800/40 py-24">
+      <section id="features" className="border-b border-gray-200 py-24 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white sm:text-4xl">
-              Everything your team needs to prioritise faster
+          <div className="mx-auto max-w-xl text-center">
+            <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
+              Everything your team needs
             </h2>
-            <p className="mt-4 text-slate-400">
-              From ingestion to closure — VulnOps handles the full vulnerability lifecycle so your team
-              can focus on fixing, not triaging.
+            <p className="mt-4 text-gray-500 dark:text-gray-400">
+              From ingestion to closure — the full vulnerability lifecycle in one tool.
             </p>
           </div>
 
-          <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(f => (
-              <div key={f.title} className="group rounded-xl border border-slate-800/60 bg-slate-900/50 p-6 transition-colors hover:border-slate-700 hover:bg-slate-900">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/15 ring-1 ring-blue-500/20 group-hover:bg-blue-600/25 transition-colors">
-                  <f.icon className="h-5 w-5 text-blue-400" />
-                </div>
-                <h3 className="mb-2 font-semibold text-white">{f.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">{f.desc}</p>
+          <div className="mt-16 grid gap-px border border-gray-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-gray-800">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="group bg-white p-8 transition-shadow hover:shadow-premium dark:bg-[#0A0A0B]"
+              >
+                <f.icon
+                  strokeWidth={1.5}
+                  className="mb-5 h-6 w-6 text-gray-400 transition-colors group-hover:text-gray-700 dark:text-gray-500 dark:group-hover:text-gray-300"
+                />
+                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-50">
+                  {f.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  {f.desc}
+                </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Scanner connectors ── */}
+      <section id="connectors" className="border-b border-gray-200 py-24 dark:border-gray-800">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
+            {/* Left */}
+            <div>
+              <Plug
+                strokeWidth={1.5}
+                className="mb-5 h-6 w-6 text-gray-400 dark:text-gray-500"
+              />
+              <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
+                Connect your scanners.
+                <br />
+                Skip the CSVs.
+              </h2>
+              <p className="mt-5 max-w-md text-gray-500 leading-relaxed dark:text-gray-400">
+                VulnOps pulls findings directly from scanner APIs on a schedule you control.
+                Credentials are stored encrypted per-org using field-level Fernet encryption
+                — they never leave your instance.
+              </p>
+              <Link href="/register">
+                <button className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-gray-900 underline-offset-4 hover:underline dark:text-gray-50">
+                  Set up a connector
+                  <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
+
+            {/* Right — provider list */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900">
+              <p className="mb-4 font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                Available connectors
+              </p>
+              <div className="space-y-3">
+                {CONNECTORS.map((c) => (
+                  <div
+                    key={c.name}
+                    className="flex items-center justify-between border-b border-gray-200 pb-3 last:border-0 last:pb-0 dark:border-gray-800"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          c.status === "live"
+                            ? "bg-emerald-500"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        }`}
+                      />
+                      <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
+                        {c.name}
+                      </span>
+                    </div>
+                    <span
+                      className={`font-mono text-xs ${
+                        c.status === "live"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-gray-400 dark:text-gray-500"
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── How it works ── */}
-      <section className="border-b border-slate-800/40 py-24 bg-slate-900/20">
+      <section id="deploy" className="border-b border-gray-200 py-24 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold text-white sm:text-4xl">How it works</h2>
-            <p className="mt-4 text-slate-400">Three steps from raw scanner output to prioritised, actionable findings.</p>
+          <div className="mx-auto max-w-xl text-center">
+            <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
+              Up and running in minutes
+            </h2>
+            <p className="mt-4 text-gray-500 dark:text-gray-400">
+              Three steps from clone to production.
+            </p>
           </div>
 
-          <div className="relative mt-16 grid gap-8 sm:grid-cols-3">
-            {/* Connector line (desktop only) */}
-            <div className="pointer-events-none absolute left-[16.66%] right-[16.66%] top-6 hidden h-px bg-gradient-to-r from-transparent via-slate-700 to-transparent sm:block" />
-
-            {STEPS.map(step => (
-              <div key={step.n} className="relative text-center">
-                <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-sm font-bold text-blue-400">
-                  {step.n}
-                </div>
-                <h3 className="mb-3 text-lg font-semibold text-white">{step.title}</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">{step.desc}</p>
+          <div className="mt-16 grid gap-px border border-gray-200 sm:grid-cols-3 dark:border-gray-800">
+            {STEPS.map((s) => (
+              <div key={s.n} className="bg-white p-8 dark:bg-[#0A0A0B]">
+                <p className="mb-5 font-mono text-xs text-gray-400 dark:text-gray-500">{s.n}</p>
+                <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-50">
+                  {s.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{s.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Stats banner ── */}
-      <section className="border-b border-slate-800/40 py-16">
+      {/* ── Self-host vs hosted ── */}
+      <section className="border-b border-gray-200 py-24 dark:border-gray-800">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            {STATS.map(s => (
-              <div key={s.label} className="text-center">
-                <p className="text-4xl font-extrabold text-white">{s.value}</p>
-                <p className="mt-1 text-sm text-slate-400">{s.label}</p>
-              </div>
-            ))}
+          <div className="mx-auto max-w-xl text-center">
+            <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
+              Your data, your infra — or ours.
+            </h2>
+            <p className="mt-4 text-gray-500 dark:text-gray-400">
+              Same code, same features. The hosted edition runs the OSS build.
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* ── Security section ── */}
-      <section className="border-b border-slate-800/40 py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-xs font-medium text-green-400">
-                <Lock className="h-3 w-3" />
-                Built for security teams
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8">
+            {/* Self-host card */}
+            <div className="rounded-lg border border-gray-200 p-8 dark:border-gray-800">
+              <div className="mb-1 text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                Self-host
               </div>
-              <h2 className="text-3xl font-bold text-white sm:text-4xl">
-                Security by design
-              </h2>
-              <p className="mt-4 text-slate-400 leading-relaxed">
-                VulnOps is purpose-built for security teams that care about data integrity.
-                All sensitive fields are encrypted at rest with per-org keys. Every action is
-                logged immutably. API access is scoped by role.
-              </p>
-              <ul className="mt-6 space-y-3">
+              <div className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                Free forever.
+              </div>
+              <div className="mt-1 font-mono text-sm text-gray-500 dark:text-gray-400">
+                Apache 2.0
+              </div>
+              <ul className="mt-6 space-y-2.5">
                 {[
-                  "Field-level encryption — sensitive data encrypted with per-org Fernet keys",
-                  "RS256 JWT authentication with short-lived access tokens",
-                  "Role-based access control: admin · analyst · read-only",
-                  "Full audit log — every mutation recorded with user, timestamp, and org scope",
-                  "Multi-tenant isolation — org scoping enforced at the DB layer",
-                ].map(item => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-slate-300">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                  "Unlimited users and scans",
+                  "All connectors included",
+                  "No telemetry, no callbacks",
+                  "Full source on GitHub",
+                  "Docker Compose or bare-metal",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400">
+                    <span className="h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-500" />
                     {item}
                   </li>
                 ))}
               </ul>
+              <a
+                href="https://github.com/tekybala/vulnops"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-8 inline-flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+              >
+                <Github strokeWidth={1.5} className="h-4 w-4" />
+                Clone the repo
+              </a>
             </div>
-            {/* Security feature cards */}
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: Lock, title: "Encrypted at rest", desc: "Per-org encryption keys, never shared" },
-                { icon: Shield, title: "JWT auth", desc: "RS256 tokens, 15-min TTL" },
-                { icon: ClipboardList, title: "Audit log", desc: "Immutable, tamper-evident trail" },
-                { icon: CheckCircle2, title: "RBAC", desc: "Granular role enforcement" },
-              ].map(c => (
-                <div key={c.title} className="rounded-xl border border-slate-800/60 bg-slate-900/50 p-5">
-                  <c.icon className="mb-3 h-6 w-6 text-green-400" />
-                  <p className="font-semibold text-white text-sm">{c.title}</p>
-                  <p className="mt-1 text-xs text-slate-400">{c.desc}</p>
+
+            {/* Hosted card */}
+            <div className="rounded-lg border border-gray-200 p-8 dark:border-gray-800">
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                  Hosted
                 </div>
-              ))}
+                <span className="rounded-full bg-violet-50 px-2 py-0.5 font-mono text-[10px] font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
+                  Coming soon
+                </span>
+              </div>
+              <div className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-50">
+                Zero ops.
+              </div>
+              <div className="mt-1 font-mono text-sm text-gray-500 dark:text-gray-400">
+                Managed by us
+              </div>
+              <ul className="mt-6 space-y-2.5">
+                {[
+                  "Same feature set as self-host",
+                  "Automatic updates and backups",
+                  "SSO on request",
+                  "SLA and support tiers",
+                  "Affordable monthly pricing",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400">
+                    <span className="h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link href="/register">
+                <button className="mt-8 inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
+                  Join the waitlist
+                  <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+                </button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── CTA footer ── */}
-      <section className="py-24">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-4xl font-extrabold text-white sm:text-5xl">
-            Start triaging smarter today
-          </h2>
-          <p className="mt-5 text-lg text-slate-400">
-            Join security teams who use VulnOps to cut remediation time by focusing on what actually matters.
+      {/* ── Security strip ── */}
+      <section className="border-b border-gray-200 py-16 dark:border-gray-800">
+        <div className="mx-auto max-w-7xl px-6">
+          <p className="mb-8 text-center font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            Built for security teams
           </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {SECURITY_CLAIMS.map((c) => (
+              <div key={c.label} className="text-center">
+                <c.icon
+                  strokeWidth={1.5}
+                  className="mx-auto mb-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
+                />
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{c.label}</p>
+                <p className="mt-0.5 font-mono text-xs text-gray-400 dark:text-gray-500">{c.sub}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Final CTA ── */}
+      <section className="py-24">
+        <div className="mx-auto max-w-2xl px-6 text-center">
+          <h2 className="text-4xl font-bold tracking-[-0.035em] text-gray-900 dark:text-gray-50 sm:text-5xl">
+            Ship the fix,<br />not the spreadsheet.
+          </h2>
+          <p className="mx-auto mt-5 max-w-md text-lg text-gray-500 dark:text-gray-400">
+            Open source. Free forever. Running on your infra.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link href="/register">
-              <Button size="lg" className="h-12 bg-blue-600 hover:bg-blue-500 text-white px-10 border-0 text-base font-semibold">
+              <button className="inline-flex h-11 items-center gap-2 rounded-md bg-gray-900 px-6 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
                 Get started free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+                <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
+              </button>
             </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">
-                Sign in
-              </Button>
-            </Link>
+            <a
+              href="https://github.com/tekybala/vulnops"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-6 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+            >
+              <Github strokeWidth={1.5} className="h-4 w-4" />
+              Star on GitHub
+            </a>
           </div>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-slate-800/40 py-8">
-        <div className="mx-auto max-w-7xl px-6 flex flex-wrap items-center justify-between gap-4 text-sm text-slate-500">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-600">
-              <Shield className="h-3.5 w-3.5 text-white" />
+      <footer className="border-t border-gray-200 py-12 dark:border-gray-800">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Shield strokeWidth={1.5} className="h-4 w-4 text-gray-900 dark:text-gray-50" />
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">VulnOps</span>
+              </div>
+              <p className="text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+                Open-source vulnerability triage console for security teams.
+              </p>
             </div>
-            <span className="font-semibold text-slate-400">VulnOps</span>
-            <span>· AI-powered vulnerability triage</span>
+
+            {/* Product */}
+            <div>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
+                Product
+              </p>
+              <ul className="space-y-2.5">
+                {[
+                  { label: "Sign in", href: "/login" },
+                  { label: "Register", href: "/register" },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Open Source */}
+            <div>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
+                Open Source
+              </p>
+              <ul className="space-y-2.5">
+                {[
+                  { label: "GitHub", href: "https://github.com/tekybala/vulnops" },
+                  { label: "Apache 2.0 License", href: "https://github.com/tekybala/vulnops/blob/main/LICENSE" },
+                  { label: "Contributing", href: "https://github.com/tekybala/vulnops/blob/main/CONTRIBUTING.md" },
+                  { label: "Security Policy", href: "https://github.com/tekybala/vulnops/blob/main/SECURITY.md" },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
+                Legal
+              </p>
+              <ul className="space-y-2.5">
+                {[
+                  { label: "Privacy Policy", href: "#" },
+                  { label: "Terms of Service", href: "#" },
+                ].map((l) => (
+                  <li key={l.label}>
+                    <a href={l.href} className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6">
-            <Link href="/login" className="hover:text-slate-300 transition-colors">Sign in</Link>
-            <Link href="/register" className="hover:text-slate-300 transition-colors">Register</Link>
+
+          <div className="mt-10 border-t border-gray-200 pt-6 dark:border-gray-800">
+            <p className="font-mono text-xs text-gray-400 dark:text-gray-500">
+              © {new Date().getFullYear()} VulnOps — Apache 2.0
+            </p>
           </div>
         </div>
       </footer>

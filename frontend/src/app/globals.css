@@ -10,7 +10,6 @@
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    /* Slightly deeper blue for stronger brand presence */
     --primary: 221 90% 48%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
@@ -24,11 +23,10 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221 90% 48%;
-    /* Softer, modern corner radius */
-    --radius: 0.625rem;
-    /* Success green for positive states */
+    --radius: 0.5rem;
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
+    --shadow-premium: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
   }
 
   .dark {
@@ -53,7 +51,18 @@
     --ring: 224.3 76.3% 52%;
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
+    --shadow-premium: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
   }
+}
+
+/* Landing page hero dot-grid */
+.hero-dot-grid {
+  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 0%, transparent 100%);
+}
+.dark .hero-dot-grid {
+  background-image: radial-gradient(circle, #374151 1px, transparent 1px);
 }
 
 @layer base {

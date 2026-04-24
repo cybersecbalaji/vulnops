@@ -59,6 +59,15 @@ const config: Config = {
           info: "#0284c7",
         },
       },
+      fontFamily: {
+        mono: ["var(--font-mono)", "JetBrains Mono", "Fira Code", "ui-monospace", "monospace"],
+      },
+      letterSpacing: {
+        "display": "-0.035em",
+      },
+      boxShadow: {
+        premium: "var(--shadow-premium)",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
