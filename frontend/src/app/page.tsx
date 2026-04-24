@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Shield, FileInput, Radar, ListOrdered, GitPullRequestArrow,
   BarChart3, ScrollText, Plug, Lock, KeyRound, ShieldCheck,
-  FileCheck2, ArrowUpRight, Github, ArrowRight, BookOpen,
+  FileCheck2, ArrowUpRight, GitFork, ArrowRight, BookOpen,
 } from "lucide-react";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ const SECURITY_CLAIMS = [
   { icon: FileCheck2, label: "Full audit log", sub: "Immutable, append-only" },
 ];
 
-const REPO_URL = "https://github.com/tekybala/vulnops";
+const REPO_URL = "https://github.com/cybersecbalaji/vulnops";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ export default function HomePage() {
   }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {
-    fetch("https://api.github.com/repos/tekybala/vulnops", { cache: "no-store" })
+    fetch("https://api.github.com/repos/cybersecbalaji/vulnops", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (typeof d.stargazers_count === "number") {
@@ -195,7 +195,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-amber-500 dark:hover:text-amber-400"
             >
-              <Github strokeWidth={1.5} className="h-4 w-4" />
+              <GitFork strokeWidth={1.5} className="h-4 w-4" />
               Star on GitHub
               {stars !== "—" && (
                 <span className="ml-0.5 rounded bg-amber-50 px-1.5 py-0.5 font-mono text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
@@ -526,7 +526,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
             >
-              <Github strokeWidth={1.5} className="h-4 w-4" />
+              <GitFork strokeWidth={1.5} className="h-4 w-4" />
               Clone the repo
             </a>
             <a
@@ -604,7 +604,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-6 text-sm font-medium text-gray-700 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-amber-500 dark:hover:text-amber-400"
             >
-              <Github strokeWidth={1.5} className="h-4 w-4" />
+              <GitFork strokeWidth={1.5} className="h-4 w-4" />
               Star on GitHub
             </a>
           </div>

@@ -1,6 +1,12 @@
 # VulnOps Triage Console
 
-A full-stack vulnerability triage platform for security operations teams. Ingest CVEs from CSV, JSON, or manual entry; enrich them with KEV, EPSS, and NVD data; score them with an LLM-powered triage agent; draft remediation tickets; and export PDF dashboard reports — all with per-organisation field encryption and a full audit log.
+An open-source vulnerability triage platform for security operations teams. Ingest CVEs from scanner APIs or file uploads; enrich with KEV, EPSS, and NVD data; score with an LLM-powered triage agent; draft remediation tickets; export PDF reports — all with per-org field encryption, multi-tenancy, and a full audit log.
+
+> **Experimental side project** — Apache 2.0. Free forever, no hosted edition, no lock-in.
+
+```
+https://github.com/cybersecbalaji/vulnops
+```
 
 ---
 
@@ -8,11 +14,12 @@ A full-stack vulnerability triage platform for security operations teams. Ingest
 
 - [Architecture](#architecture)
 - [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Quick Local Setup (5 minutes)](#quick-local-setup-5-minutes)
-- [Environment Setup (manual)](#environment-setup-manual)
-- [Running with Docker (Recommended)](#running-with-docker-recommended)
+- [Quick Setup (5 minutes)](#quick-setup-5-minutes)
+- [Environment Variables](#environment-variables)
+- [Running with Docker](#running-with-docker)
 - [Running Locally (Without Docker)](#running-locally-without-docker)
+- [Scanner API Connectors](#scanner-api-connectors)
+- [Scheduled Sync](#scheduled-sync)
 - [Database Migrations](#database-migrations)
 - [Deploying Online](#deploying-online)
 - [Running Tests](#running-tests)
@@ -31,10 +38,10 @@ A full-stack vulnerability triage platform for security operations teams. Ingest
 │         (TypeScript · Tailwind · shadcn/ui)          │
 │                   localhost:3000                     │
 └──────────────────────────┬──────────────────────────┘
-                           │ HTTP / REST
+                           │ REST API (/api/v1/*)
 ┌──────────────────────────▼──────────────────────────┐
 │                  FastAPI Backend                      │
-│             (Python 3.12 · SQLAlchemy)               │
+│             (Python 3.12 · SQLAlchemy 2.0)           │
 │                   localhost:8000                     │
 └──────┬────────────────────────────────┬─────────────┘
        │                                │
@@ -46,175 +53,120 @@ A full-stack vulnerability triage platform for security operations teams. Ingest
 └─────────────┘
 ```
 
-**Stack:** Next.js 14 · FastAPI · PostgreSQL 16 · Redis 7 · Fernet encryption · fpdf2 · Recharts
+**Stack:** Next.js 14 · FastAPI · PostgreSQL 16 · Redis 7 · Fernet encryption · APScheduler · fpdf2 · Recharts
 
 ---
 
 ## Features
 
-| Phase | Feature |
-|-------|---------|
-| 1 | JWT auth (RS256, 15-min access tokens) · refresh token rotation · multi-org |
-| 2 | Per-org field encryption (Fernet) · input sanitization pipeline |
-| 3 | Vulnerability ingestion — CSV, JSON, manual · deduplication |
-| 4 | Enrichment — CISA KEV · FIRST EPSS · NVD · Redis caching |
-| 5 | LLM abstraction (Anthropic, OpenAI, Gemini, Ollama) · org settings |
-| 6 | Context scoring agent — rule-based + LLM triage priority · temperature=0.0 |
-| 7 | Remediation ticket drafter (Markdown + Jira) · bulk triage advisor |
-| 8 | Dashboard stats · PDF export · append-only audit log |
+| Area | Feature |
+|------|---------|
+| **Auth** | RS256 JWT (15-min access tokens) · refresh token rotation · multi-org · RBAC (admin / analyst / readonly) |
+| **Encryption** | Per-org Fernet DEK · `EncryptedString` TypeDecorator · ContextVar isolation per request |
+| **Ingestion** | CSV, JSON, manual entry · deduplication · scanner API connectors (pull, no CSV export needed) |
+| **Scanner connectors** | Tenable.io · Qualys VMDR · Rapid7 InsightVM (beta) · Nessus Pro (beta) · Microsoft Defender (beta) |
+| **Scheduled sync** | APScheduler — auto-sync all enabled connectors every N hours (`SCHEDULER_ENABLED=true`) |
+| **Enrichment** | CISA KEV · FIRST EPSS · NVD · Redis caching |
+| **AI triage** | LLM scoring agent (OpenAI, Anthropic, Gemini, Ollama) · `temperature=0.0` · written rationale |
+| **Assets** | Asset register · link findings to assets · internet-facing flag boosts priority |
+| **Remediation** | Markdown + Jira ticket drafts · bulk triage advisor |
+| **Reporting** | Dashboard stats · PDF export · board-ready summaries |
+| **Audit log** | Append-only, org-scoped, admin-read-only |
+| **Security headers** | HSTS · CSP · X-Frame-Options · X-Content-Type-Options on every response |
 
 ---
 
-## Quick Local Setup (5 minutes)
+## Quick Setup (5 minutes)
 
-The fastest path to a running stack — requires only Docker Desktop and Python.
+Requires Docker Desktop and Python 3.11+.
 
 ```bash
-# 1. Clone the repo
-git clone <repo-url> && cd Vuln_ops
+# 1. Clone
+git clone https://github.com/cybersecbalaji/vulnops && cd vulnops
 
-# 2. Generate all secrets and create backend/.env automatically
+# 2. Generate secrets and write .env automatically
 python scripts/setup.py
 
-# 3. Start everything
+# For CI or one-click installers — skip all prompts:
+python scripts/setup.py --non-interactive
+
+# 3. Start the full stack
 docker compose up -d
 
-# 4. Apply database migrations (first time only)
+# 4. Apply database migrations (first run only)
 docker compose exec backend alembic upgrade head
-
-# Done!
-#   Frontend → http://localhost:3000
-#   API docs  → http://localhost:8000/api/docs
 ```
 
-Register your first user at `http://localhost:3000` — the first registered user in an org becomes the admin.
+- **Frontend** → http://localhost:3000
+- **API docs** → http://localhost:8000/api/docs *(DEBUG mode only)*
+
+Register your first user at `http://localhost:3000` — the first user in a new org becomes admin automatically.
 
 ---
 
-## Prerequisites
+## Environment Variables
 
-| Tool | Minimum Version | Notes |
-|------|----------------|-------|
-| Docker + Docker Compose | 24.x / 2.x | Recommended path |
-| Python | 3.11+ | Local dev only |
-| Node.js | 20.x | Local dev only |
-| PostgreSQL | 16 | Provided by Docker |
-| Redis | 7 | Provided by Docker |
+`scripts/setup.py` generates most values automatically. The root `.env.example` documents everything.
 
----
+### Core (required)
 
-## Environment Setup
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MASTER_ENCRYPTION_KEY` | Fernet key — encrypts all per-org DEKs | `python scripts/setup.py` |
+| `JWT_PRIVATE_KEY` | RSA 4096 private key (PEM, `\n`-escaped) | `python scripts/setup.py` |
+| `JWT_PUBLIC_KEY` | RSA 4096 public key (PEM, `\n`-escaped) | `python scripts/setup.py` |
+| `DATABASE_URL` | PostgreSQL connection string (`asyncpg://` scheme) | `postgresql+asyncpg://user:pass@host/db` |
+| `REDIS_URL` | Redis connection string | `redis://localhost:6379/0` |
+| `CORS_ORIGINS` | JSON array of allowed origins | `["https://app.yourdomain.com"]` |
+| `APP_ENV` | `development` or `production` | `production` |
+| `DEBUG` | Enable Swagger UI + verbose errors | `false` |
 
-### 1. Generate required secrets
+### Optional
 
-```bash
-# Generate a Fernet master encryption key
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NVD_API_KEY` | NVD API key (higher rate limit) | — |
+| `BACKEND_URL` | Backend URL used by the Next.js server-side proxy | `http://backend:8000` |
+| `SCHEDULER_ENABLED` | Enable background scanner sync via APScheduler | `false` |
+| `SCHEDULER_SYNC_INTERVAL_HOURS` | How often to sync all enabled connectors | `6` |
+| `MAX_LOGIN_ATTEMPTS` | Failed logins before lockout | `10` |
+| `LOCKOUT_MINUTES` | Lockout window after too many failures | `15` |
 
-# Generate an RSA 4096-bit key pair for JWT signing
-openssl genrsa -out jwt_private.pem 4096
-openssl rsa -in jwt_private.pem -pubout -out jwt_public.pem
-```
-
-### 2. Create the backend `.env` file
-
-```bash
-cp backend/.env.example backend/.env
-```
-
-Edit `backend/.env` and fill in all required values:
-
-```env
-# ── Application ────────────────────────────────────────────────────────────
-APP_ENV=development
-DEBUG=true
-
-# ── Database ────────────────────────────────────────────────────────────────
-DATABASE_URL=postgresql+asyncpg://vulnops:changeme@localhost:5432/vulnops
-
-# ── Redis ────────────────────────────────────────────────────────────────────
-REDIS_URL=redis://localhost:6379/0
-
-# ── Encryption ───────────────────────────────────────────────────────────────
-# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-MASTER_ENCRYPTION_KEY=your-generated-fernet-key-here
-
-# ── JWT (RS256) ───────────────────────────────────────────────────────────────
-# Paste PEM content — replace literal newlines with \n in the .env file
-JWT_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIE...\n-----END RSA PRIVATE KEY-----
-JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=30
-
-# ── External APIs (optional but recommended) ──────────────────────────────────
-NVD_API_KEY=your-nvd-api-key       # https://nvd.nist.gov/developers/request-an-api-key
-
-# ── CORS ─────────────────────────────────────────────────────────────────────
-CORS_ORIGINS=["http://localhost:3000"]
-
-# ── Rate Limiting ─────────────────────────────────────────────────────────────
-MAX_LOGIN_ATTEMPTS=10
-LOCKOUT_MINUTES=15
-```
-
-> **Tip:** To put PEM keys into a `.env` file, replace every newline inside the PEM with `\n`. The config loader converts `\n` literals back to real newlines automatically.
+> **Critical:** Back up `MASTER_ENCRYPTION_KEY` securely — losing it means losing access to all encrypted fields in the database.
 
 ---
 
-## Running with Docker (Recommended)
+## Running with Docker
 
 ```bash
-# 1. Clone the repo
-git clone <repo-url>
-cd Vuln_ops
+git clone https://github.com/cybersecbalaji/vulnops && cd vulnops
 
-# 2. Create and populate backend/.env (see Environment Setup above)
-cp backend/.env.example backend/.env
-# ... edit backend/.env ...
+# Generate secrets
+python scripts/setup.py
 
-# 3. Start infrastructure (Postgres + Redis)
+# Start infra first, run migrations, then bring up the full stack
 docker compose up -d db redis
-
-# 4. Wait for services to be healthy, then run migrations
 docker compose run --rm backend alembic upgrade head
-
-# 5. Start the full stack
 docker compose up -d
-
-# Services:
-#   API docs:    http://localhost:8000/api/docs
-#   Frontend:    http://localhost:3000
-#   API base:    http://localhost:8000/api/v1
 ```
 
-### Docker commands reference
+### Useful commands
 
 ```bash
-# View logs
-docker compose logs -f backend
+docker compose logs -f backend          # stream backend logs
 docker compose logs -f frontend
-
-# Stop everything
-docker compose down
-
-# Stop and remove volumes (wipes database)
-docker compose down -v
-
-# Rebuild backend image after dependency changes
-docker compose build backend
-
-# Open a shell in the backend container
-docker compose exec backend bash
-
-# Run a one-off command (e.g. create migration)
-docker compose exec backend alembic revision --autogenerate -m "add new table"
+docker compose down                     # stop all services
+docker compose down -v                  # stop and wipe database volumes
+docker compose build backend            # rebuild after dep changes
+docker compose exec backend bash        # open shell in backend container
+docker compose exec backend alembic revision --autogenerate -m "describe change"
 ```
 
 ---
 
 ## Running Locally (Without Docker)
 
-You still need PostgreSQL 16 and Redis 7 running. The easiest way is to start just the infra containers:
+Start just the infrastructure via Docker, then run the app processes directly:
 
 ```bash
 docker compose up -d db redis
@@ -224,122 +176,135 @@ docker compose up -d db redis
 
 ```bash
 cd backend
-
-# Create a virtual environment
 python -m venv .venv
-source .venv/bin/activate        # Linux/macOS
-.venv\Scripts\activate           # Windows
+source .venv/bin/activate      # Linux / macOS
+.venv\Scripts\activate         # Windows
 
-# Install dependencies
 pip install -r requirements.txt
-
-# Set environment variables (or use a .env file)
-# ... ensure backend/.env is populated ...
-
-# Run database migrations
 alembic upgrade head
-
-# Start the development server (auto-reload)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API will be available at `http://localhost:8000`.  
-Interactive docs (development only): `http://localhost:8000/api/docs`
+API: `http://localhost:8000` · Docs (dev only): `http://localhost:8000/api/docs`
 
 ### Frontend
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-Frontend will be available at `http://localhost:3000`.
+Frontend: `http://localhost:3000`
+
+---
+
+## Scanner API Connectors
+
+VulnOps pulls findings directly from scanner APIs — no CSV export required. Credentials are stored encrypted per-org using the `EncryptedString` TypeDecorator; they never leave your instance.
+
+### Supported connectors
+
+| Provider | Status | Auth method |
+|----------|--------|-------------|
+| Tenable.io | **Live** | `X-ApiKeys: accessKey=…;secretKey=…` |
+| Qualys VMDR | **Live** | HTTP Basic (`username:password`) |
+| Rapid7 InsightVM | Beta | API key |
+| Nessus Professional | Beta | API key |
+| Microsoft Defender | Beta | OAuth2 client credentials |
+
+### Add a connector via UI
+
+1. Go to **Settings → Connectors** in the web app.
+2. Click **Add connector** and select a provider.
+3. Fill in the required credentials.
+4. Click **Test** to verify the connection.
+5. Click **Sync now** for an immediate pull, or enable scheduled sync.
+
+### Add a connector via API
+
+```bash
+# Create a Tenable connector
+curl -X POST http://localhost:8000/api/v1/scanner-connections/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Prod Tenable",
+    "provider": "tenable",
+    "config": {
+      "access_key": "your-access-key",
+      "secret_key": "your-secret-key"
+    },
+    "enabled": true
+  }'
+
+# Test it
+curl -X POST http://localhost:8000/api/v1/scanner-connections/{id}/test \
+  -H "Authorization: Bearer $TOKEN"
+
+# Trigger a one-shot sync
+curl -X POST http://localhost:8000/api/v1/scanner-connections/{id}/sync \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Required config keys per provider
+
+```bash
+# List providers and their required config keys
+curl http://localhost:8000/api/v1/scanner-connections/providers \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+## Scheduled Sync
+
+Enable background sync to have VulnOps automatically pull findings from all enabled connectors on a schedule:
+
+```env
+# In your .env or deployment env vars
+SCHEDULER_ENABLED=true
+SCHEDULER_SYNC_INTERVAL_HOURS=6   # default: every 6 hours
+```
+
+When enabled, APScheduler starts an `AsyncIOScheduler` in the FastAPI lifespan. Each tick iterates all enabled `ScannerConnection` rows across all orgs, decrypts their credentials under the correct per-org DEK, and calls the connector's `fetch_findings()` → `ingest_batch()` pipeline.
+
+Disable for test environments or if you're using an external cron / task queue.
 
 ---
 
 ## Database Migrations
 
-Migrations are managed with Alembic.
-
 ```bash
-# Apply all migrations (run from backend/ directory or via Docker)
+# Apply all pending migrations
 alembic upgrade head
 
-# Check current migration state
+# Check current state
 alembic current
 
-# Generate a new migration after model changes
+# Generate a migration after model changes
 alembic revision --autogenerate -m "describe your change"
 
-# Roll back one migration
+# Roll back one step
 alembic downgrade -1
-
-# Roll back to a specific revision
-alembic downgrade <revision_id>
 ```
 
 ### Migration history
 
 | Revision | Description |
 |----------|-------------|
-| `001` | Initial schema — organizations, users, refresh tokens |
-| `002` | Vulnerabilities table with enc_* columns and scoring fields |
-
-> **Note:** Phases 3–8 added columns via subsequent migrations. Run `alembic upgrade head` to apply them all in order.
+| `001` | Organizations, users, refresh tokens |
+| `002` | Vulnerabilities table with `enc_*` columns and scoring fields |
+| `003` | Assets table + asset–vulnerability association |
+| `004` | Scanner connections table (`enc_config`, sync state) |
 
 ---
 
 ## Deploying Online
 
-### Option 1 — Railway (Easiest, recommended for getting started)
+### Option 1 — Self-hosted VPS (most control, recommended for production)
 
-Railway auto-detects Docker and provides managed Postgres and Redis. Free tier covers light usage.
-
-1. Push the repo to GitHub.
-2. Go to [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**.
-3. Add a **PostgreSQL** plugin and a **Redis** plugin from the Railway dashboard.
-4. In the **backend** service settings → **Variables**, add every value from `backend/.env` (run `python scripts/setup.py` locally first to generate the crypto secrets). Set:
-   ```
-   DATABASE_URL    → (copy from Railway's Postgres plugin — use asyncpg:// scheme)
-   REDIS_URL       → (copy from Railway's Redis plugin)
-   APP_ENV         → production
-   DEBUG           → false
-   CORS_ORIGINS    → ["https://your-frontend.up.railway.app"]
-   ```
-5. In the **Deploy** section, set the start command to:
-   ```
-   alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-   ```
-6. Add the **frontend** service, set `NEXT_PUBLIC_API_URL` to the backend's Railway URL.
-7. Deploy. Railway handles TLS automatically.
-
----
-
-### Option 2 — Render (Good free tier)
-
-1. Push to GitHub.
-2. Create a **PostgreSQL** database and a **Redis** instance on [render.com](https://render.com).
-3. Create a **Web Service** for the backend:
-   - **Runtime**: Docker
-   - **Root directory**: `backend`
-   - **Start command**: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - Add all env vars from `backend/.env`
-4. Create a **Static Site** or **Web Service** for the frontend:
-   - **Build command**: `npm install && npm run build`
-   - **Start command**: `npm run start`
-   - Set `NEXT_PUBLIC_API_URL` to your backend Render URL
-5. Render provides free TLS on all services.
-
----
-
-### Option 3 — Self-hosted VPS (DigitalOcean, Linode, Hetzner — most control)
-
-Best for production workloads. A $12/month Droplet (2 vCPU, 2 GB RAM) handles the full stack comfortably.
+A $6–12/month VPS (DigitalOcean, Hetzner, Linode) handles the full stack comfortably.
 
 ```bash
 # On your server (Ubuntu 22.04):
@@ -348,97 +313,137 @@ Best for production workloads. A $12/month Droplet (2 vCPU, 2 GB RAM) handles th
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER && newgrp docker
 
-# 2. Clone the repo
-git clone <repo-url> && cd Vuln_ops
+# 2. Clone
+git clone https://github.com/cybersecbalaji/vulnops && cd vulnops
 
-# 3. Copy your generated backend/.env to the server
-scp backend/.env user@your-server:/path/to/Vuln_ops/backend/.env
+# 3. Generate secrets
+python scripts/setup.py --non-interactive
 
-# 4. Set required env vars for production compose
-export POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+# 4. Set production env vars
 export DOMAIN="yourdomain.com"
-export NEXT_PUBLIC_API_URL="https://api.yourdomain.com"
+export POSTGRES_PASSWORD="$(openssl rand -hex 32)"
 
-# 5. Edit Caddyfile — replace yourdomain.com with your actual domain
-nano Caddyfile
-
-# 6. Start the production stack (no live-reload, built images, Caddy HTTPS)
+# 5. Start the production stack (Caddy handles TLS automatically)
 docker compose -f docker-compose.prod.yml up -d --build
 
-# 7. Run migrations
+# 6. Run migrations
 docker compose -f docker-compose.prod.yml exec backend alembic upgrade head
-
-# Caddy automatically obtains a Let's Encrypt TLS certificate.
-# Point your domain's A record to the server IP and you're done.
 ```
 
-**Minimum VPS spec:** 1 vCPU · 1 GB RAM · 20 GB SSD  
+Point your domain's A record to the server IP. Caddy obtains a Let's Encrypt certificate automatically.
+
+**Minimum spec:** 1 vCPU · 1 GB RAM · 20 GB SSD  
 **Recommended:** 2 vCPU · 2 GB RAM · 40 GB SSD
 
 ---
 
-### Online deployment: environment variables checklist
+### Option 2 — Railway
 
-Regardless of platform, set these before deploying:
+Use the included `deploy/railway.toml` manifest.
 
-| Variable | Where to get it |
-|----------|----------------|
+1. Push to GitHub.
+2. [railway.app](https://railway.app) → **New Project → Deploy from GitHub repo**.
+3. Add **PostgreSQL** and **Redis** plugins.
+4. In **Variables**, set everything from `backend/.env` plus:
+   ```
+   APP_ENV=production
+   DEBUG=false
+   CORS_ORIGINS=["https://your-frontend.up.railway.app"]
+   ```
+5. Set the start command:
+   ```
+   alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+   ```
+6. Deploy the frontend separately; set `BACKEND_URL` to the Railway backend internal URL.
+
+> **Known issue:** Railway uses HTTP for internal service communication. Set `BACKEND_URL` to the internal Railway DNS (`http://backend.railway.internal:8000`) — do not use the public HTTPS URL for the proxy or you'll get 308 redirect loops.
+
+---
+
+### Option 3 — Fly.io
+
+Use `deploy/fly.toml`. Requires the [Fly CLI](https://fly.io/docs/hands-on/install-flyctl/).
+
+```bash
+fly auth login
+fly launch --config deploy/fly.toml
+fly postgres create --name vulnops-db
+fly redis create --name vulnops-redis
+fly secrets set MASTER_ENCRYPTION_KEY="..." JWT_PRIVATE_KEY="..." ...
+fly deploy
+```
+
+---
+
+### Option 4 — Render
+
+Use `deploy/render.yaml` (Blueprint).
+
+1. Push to GitHub.
+2. [render.com](https://render.com) → **Blueprints** → connect the repo.
+3. Render reads `deploy/render.yaml` and provisions backend + managed Postgres + Redis automatically.
+4. Add secrets in the Render dashboard (same vars as the self-hosted `.env`).
+
+---
+
+### Environment variables checklist for all cloud deploys
+
+| Variable | Source |
+|----------|--------|
 | `MASTER_ENCRYPTION_KEY` | `python scripts/setup.py` |
 | `JWT_PRIVATE_KEY` | `python scripts/setup.py` |
 | `JWT_PUBLIC_KEY` | `python scripts/setup.py` |
-| `DATABASE_URL` | Your managed Postgres connection string (use `asyncpg://` scheme) |
-| `REDIS_URL` | Your managed Redis connection string |
+| `DATABASE_URL` | Managed Postgres — use `asyncpg://` scheme |
+| `REDIS_URL` | Managed Redis |
 | `CORS_ORIGINS` | `["https://your-frontend-domain.com"]` |
 | `APP_ENV` | `production` |
 | `DEBUG` | `false` |
-| `NVD_API_KEY` | Optional — [nvd.nist.gov](https://nvd.nist.gov/developers/request-an-api-key) |
-
-> **Important:** The `MASTER_ENCRYPTION_KEY` encrypts all sensitive vulnerability data. Back it up securely — losing it means losing access to all encrypted fields in the database.
+| `BACKEND_URL` | Internal backend URL for the Next.js proxy |
+| `SCHEDULER_ENABLED` | `true` if you want automatic scanner sync |
 
 ---
 
 ## Running Tests
 
-Tests use SQLite in-memory (no live Postgres needed) and a mocked Redis client.
+Tests use SQLite in-memory and a mocked Redis client — no live Postgres or Redis required.
 
 ```bash
 cd backend
 
-# Run all 237 tests
+# Run all 318 tests
 pytest
 
-# Run with verbose output
+# Verbose output
 pytest -v
 
-# Run a specific phase
-pytest tests/test_phase3.py -v
+# Single file
+pytest tests/test_scanner_connectors.py -v
 
-# Run with coverage report
+# With coverage
 pytest --cov=app --cov-report=term-missing
-
-# Run a single test class
-pytest tests/test_phase8.py::TestAuditLogEndpoint -v
 ```
 
-### Test summary
+### Test suite
 
-| File | Phase | Tests |
-|------|-------|-------|
-| `test_auth.py` | Auth + JWT + refresh tokens | 29 |
-| `test_phase2.py` | Encryption + sanitization | 30 |
-| `test_phase3.py` | Ingestion + deduplication | 42 |
-| `test_phase4.py` | KEV + EPSS + NVD enrichment | 31 |
-| `test_phase5.py` | LLM abstraction + org settings | 29 |
+| File | Area | Tests |
+|------|------|-------|
+| `test_auth.py` | JWT auth, refresh tokens, sessions | 29 |
+| `test_phase2.py` | Field encryption, sanitization | 30 |
+| `test_phase3.py` | Ingestion, deduplication | 42 |
+| `test_phase4.py` | KEV, EPSS, NVD enrichment | 31 |
+| `test_phase5.py` | LLM abstraction, org settings | 29 |
 | `test_phase6.py` | Context scoring agent | 29 |
-| `test_phase7.py` | Remediation tickets + triage advice | 26 |
-| `test_phase8.py` | Dashboard + PDF + audit log | 21 |
-| **Total** | | **237** |
+| `test_phase7.py` | Remediation tickets, triage advice | 26 |
+| `test_phase8.py` | Dashboard, PDF export, audit log | 21 |
+| `test_scanner_connectors.py` | Scanner connectors (parse, encrypt, sync, RBAC) | 14 |
+| `test_assets.py` | Asset management, CSV import | 7 |
+| **Total** | | **318** |
 
 ---
 
 ## API Reference
 
-All endpoints are under `/api/v1`. Authentication uses `Authorization: Bearer <access_token>`.
+All endpoints under `/api/v1`. Authentication: `Authorization: Bearer <access_token>`.
 
 ### Authentication
 
@@ -446,61 +451,92 @@ All endpoints are under `/api/v1`. Authentication uses `Authorization: Bearer <a
 |--------|------|-------------|
 | `POST` | `/auth/register` | Create org + first admin user |
 | `POST` | `/auth/login` | Get access + refresh tokens |
-| `POST` | `/auth/refresh` | Rotate refresh token, get new access token |
-| `POST` | `/auth/logout` | Revoke current session |
+| `POST` | `/auth/refresh` | Rotate refresh token |
+| `POST` | `/auth/logout` | Revoke session |
 | `GET` | `/auth/sessions` | List active sessions |
 
 ### Vulnerabilities
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/vulnerabilities/` | Create a single vulnerability (manual) |
-| `POST` | `/vulnerabilities/ingest/csv` | Bulk ingest from CSV upload |
-| `POST` | `/vulnerabilities/ingest/json` | Bulk ingest from JSON upload |
-| `GET` | `/vulnerabilities/` | List (paginated, filterable by severity/status) |
-| `GET` | `/vulnerabilities/{id}` | Get single vulnerability |
-| `PATCH` | `/vulnerabilities/{id}` | Partial update |
-| `DELETE` | `/vulnerabilities/{id}` | Delete (admin only) |
-| `POST` | `/vulnerabilities/enrich` | Enrich all vulns (KEV + EPSS + NVD) |
-| `POST` | `/vulnerabilities/{id}/enrich` | Enrich single vulnerability |
-| `POST` | `/vulnerabilities/score` | Score all vulns with LLM |
-| `POST` | `/vulnerabilities/{id}/score` | Score single vulnerability |
+| `POST` | `/vulnerabilities/` | Create single (manual) |
+| `POST` | `/vulnerabilities/ingest/csv` | Bulk ingest CSV |
+| `POST` | `/vulnerabilities/ingest/json` | Bulk ingest JSON |
+| `GET` | `/vulnerabilities/` | List (paginated, filterable) |
+| `GET` | `/vulnerabilities/{id}` | Get single |
+| `PATCH` | `/vulnerabilities/{id}` | Update |
+| `DELETE` | `/vulnerabilities/{id}` | Delete (admin) |
+| `POST` | `/vulnerabilities/enrich` | Enrich all (KEV + EPSS + NVD) |
+| `POST` | `/vulnerabilities/{id}/enrich` | Enrich single |
+| `POST` | `/vulnerabilities/score` | AI-score all |
+| `POST` | `/vulnerabilities/{id}/score` | AI-score single |
+
+### Assets
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/assets/` | Create asset |
+| `POST` | `/assets/ingest/csv` | Bulk import from CSV |
+| `GET` | `/assets/` | List assets |
+| `GET` | `/assets/{id}` | Get asset |
+| `PATCH` | `/assets/{id}` | Update asset |
+| `DELETE` | `/assets/{id}` | Delete asset (admin) |
+| `POST` | `/assets/{id}/match` | Match asset to findings |
+
+### Scanner Connections
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/scanner-connections/providers` | List available providers + required config keys |
+| `GET` | `/scanner-connections/` | List org's connections |
+| `POST` | `/scanner-connections/` | Create connection (admin) |
+| `GET` | `/scanner-connections/{id}` | Get connection |
+| `PATCH` | `/scanner-connections/{id}` | Update connection (admin) |
+| `DELETE` | `/scanner-connections/{id}` | Delete connection (admin) |
+| `POST` | `/scanner-connections/{id}/test` | Test credentials live |
+| `POST` | `/scanner-connections/{id}/sync` | Trigger one-shot sync |
 
 ### Org Settings
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/org/settings` | Get org LLM config + scoring thresholds |
-| `PATCH` | `/org/settings` | Update settings (admin only) |
-| `POST` | `/org/settings/test-llm` | Validate LLM connectivity (admin only) |
+| `GET` | `/org/settings` | Get LLM config + scoring thresholds |
+| `PATCH` | `/org/settings` | Update (admin) |
+| `POST` | `/org/settings/test-llm` | Validate LLM connectivity (admin) |
 
 ### Remediation
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/remediation/{id}/ticket` | Draft a remediation ticket (Markdown/Jira/both) |
-| `POST` | `/remediation/triage-advice` | Generate strategic triage plan |
+| `POST` | `/remediation/{id}/ticket` | Draft ticket (Markdown / Jira / both) |
+| `POST` | `/remediation/triage-advice` | Generate bulk triage plan |
 
 ### Reports
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/reports/dashboard` | Vulnerability statistics (by severity, status, priority) |
-| `GET` | `/reports/dashboard/pdf` | Download dashboard as PDF |
-| `GET` | `/reports/audit-log` | Paginated audit log (admin only) |
+| `GET` | `/reports/dashboard` | Stats by severity, status, priority |
+| `GET` | `/reports/dashboard/pdf` | Download PDF |
+| `GET` | `/reports/audit-log` | Paginated audit log (admin) |
 
-### CSV Ingestion Format
+### Health
 
-Required columns: `cve_id`, `title`, `description`, `severity`  
-Optional columns: `affected_component`, `notes`, `remediation_advice`, `cvss_score`, `epss_score`, `source_id`, `status`
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Liveness probe |
+| `GET` | `/ready` | Readiness probe (checks DB + Redis) |
+
+### Ingestion formats
+
+**CSV** — required columns: `cve_id`, `title`, `description`, `severity`
 
 ```csv
 cve_id,title,description,severity,cvss_score,epss_score
-CVE-2024-1234,Apache Log4j RCE,Remote code execution via JNDI lookup,critical,10.0,0.97
-CVE-2024-5678,OpenSSL Buffer Overflow,Heap buffer overflow in TLS handling,high,8.1,0.45
+CVE-2024-1234,Apache Log4j RCE,Remote code execution via JNDI,critical,10.0,0.97
+CVE-2024-5678,OpenSSL Buffer Overflow,Heap overflow in TLS,high,8.1,0.45
 ```
 
-### JSON Ingestion Format
+**JSON**
 
 ```json
 [
@@ -520,56 +556,43 @@ CVE-2024-5678,OpenSSL Buffer Overflow,Heap buffer overflow in TLS handling,high,
 
 ## LLM Provider Configuration
 
-Configure your LLM provider via `PATCH /org/settings` (admin only). API keys are encrypted with the org DEK before storage and never returned in API responses.
+Configure via `PATCH /org/settings` (admin only). API keys are encrypted with the org DEK before storage and never returned in API responses.
 
-### Supported providers
-
-| Provider | `ai_provider` value | Notes |
-|----------|--------------------|----|
-| Anthropic Claude | `anthropic` | Default. Requires `ai_api_key` |
+| Provider | `ai_provider` | Notes |
+|----------|--------------|-------|
+| Anthropic Claude | `anthropic` | Requires `ai_api_key` |
 | OpenAI GPT | `openai` | Requires `ai_api_key` |
 | Google Gemini | `gemini` | Requires `ai_api_key` |
 | Ollama (local) | `ollama` | Requires `ollama_base_url`, no API key |
 
-### Example: configure Anthropic
-
 ```bash
+# Configure Anthropic
 curl -X PATCH http://localhost:8000/api/v1/org/settings \
-  -H "Authorization: Bearer <token>" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "ai_provider": "anthropic",
     "ai_model": "claude-sonnet-4-6",
     "ai_api_key": "sk-ant-..."
   }'
-```
 
-### Example: configure Ollama (local)
-
-```bash
+# Configure local Ollama
 curl -X PATCH http://localhost:8000/api/v1/org/settings \
-  -H "Authorization: Bearer <token>" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "ai_provider": "ollama",
     "ai_model": "llama3",
     "ollama_base_url": "http://localhost:11434"
   }'
-```
 
-### Scoring thresholds
-
-Scoring thresholds are also configurable per org:
-
-```bash
+# Adjust scoring thresholds
 curl -X PATCH http://localhost:8000/api/v1/org/settings \
-  -H "Authorization: Bearer <token>" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "epss_immediate_threshold": 0.5,
-    "epss_this_week_threshold": 0.3,
     "cvss_immediate_threshold": 9.0,
-    "cvss_this_week_threshold": 7.0,
     "kev_sla_days": 7,
     "non_kev_critical_sla_days": 30
   }'
@@ -581,58 +604,108 @@ curl -X PATCH http://localhost:8000/api/v1/org/settings \
 
 | Control | Implementation |
 |---------|---------------|
-| **Authentication** | RS256 JWT access tokens (15-min TTL, in-memory only) + SHA-256 hashed refresh tokens (rotated on every use) |
-| **Field encryption** | Per-org Fernet DEK; sensitive text fields (`enc_*`) encrypted at application layer before write |
-| **Multi-tenancy** | Every DB query scoped to `org_id`; enforced at service layer |
-| **Input sanitization** | HTML stripping, control character removal, Unicode NFC normalisation, length caps on all text fields |
+| **Authentication** | RS256 JWT (15-min TTL, in-memory) + SHA-256 hashed refresh tokens, rotated on every use |
+| **Field encryption** | Per-org Fernet DEK; `EncryptedString` TypeDecorator encrypts `enc_*` columns at the application layer |
+| **Connector credentials** | Stored as encrypted JSON blobs (`enc_config`) under the org DEK — never plaintext in DB |
+| **Multi-tenancy** | Every DB query scoped to `org_id`; enforced at the service layer |
+| **Input sanitization** | HTML stripping, control character removal, Unicode NFC normalisation, length caps |
 | **Password security** | bcrypt hashing + HaveIBeenPwned breach check on registration |
 | **Rate limiting** | Redis-backed login attempt limiting (default: 10 attempts, 15-min lockout) |
-| **LLM isolation** | All LLM calls through `LLMClient` abstraction; API keys encrypted before storage, never logged |
+| **LLM isolation** | All LLM calls through `LLMClient` abstraction; API keys encrypted, never logged |
 | **Scoring determinism** | `temperature=0.0` enforced on all LLM scoring calls |
-| **Audit log** | Append-only, org-scoped event log; admin-only read access |
-| **HTTP security headers** | HSTS (1-year), CSP, X-Frame-Options, X-Content-Type-Options on every response |
+| **Audit log** | Append-only, org-scoped; admin-read-only |
+| **HTTP security headers** | HSTS (1-year) · CSP · X-Frame-Options · X-Content-Type-Options on every response |
 
 ---
 
 ## Project Structure
 
 ```
-Vuln_ops/
-├── docker-compose.yml
+vulnops/
+├── .env.example                    # Root env template (used by Compose)
+├── docker-compose.yml              # Dev stack
+├── docker-compose.prod.yml         # Production stack (Caddy, built images)
+├── Caddyfile                       # Reverse proxy + automatic TLS
 ├── scripts/
-│   └── postgres-init.sql
+│   └── setup.py                    # Secret generation (--non-interactive flag)
+├── deploy/
+│   ├── railway.toml                # Railway deploy manifest
+│   ├── fly.toml                    # Fly.io deploy manifest
+│   └── render.yaml                 # Render Blueprint
+├── docs/
+│   └── DEPLOY.md                   # Detailed deploy guide + known issues
 ├── backend/
-│   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── pytest.ini
 │   ├── alembic/
-│   │   └── versions/          # Database migrations
+│   │   └── versions/
+│   │       ├── 001_initial.py
+│   │       ├── 002_vulnerabilities.py
+│   │       ├── 003_assets.py
+│   │       └── 004_scanner_connections.py
 │   ├── app/
-│   │   ├── main.py            # FastAPI app factory
+│   │   ├── main.py                 # App factory: CORS, headers, lifespan scheduler
 │   │   ├── core/
-│   │   │   ├── config.py      # Pydantic settings
-│   │   │   ├── encryption.py  # Fernet field encryption + ContextVar
+│   │   │   ├── config.py           # Pydantic settings (SCHEDULER_ENABLED etc.)
+│   │   │   ├── encryption.py       # EncryptedString + ContextVar
+│   │   │   ├── security.py         # RS256 JWT + bcrypt
 │   │   │   ├── sanitization.py
-│   │   │   ├── security.py    # JWT + password hashing
-│   │   │   ├── clients/       # HTTP clients (KEV, EPSS, NVD, Jira)
-│   │   │   └── llm/           # LLM abstraction (Anthropic, OpenAI, Gemini, Ollama)
+│   │   │   ├── clients/
+│   │   │   │   ├── kev.py          # CISA KEV HTTP client
+│   │   │   │   ├── epss.py         # FIRST EPSS client
+│   │   │   │   ├── nvd.py          # NVD client
+│   │   │   │   └── scanners/       # Scanner connector framework
+│   │   │   │       ├── base.py     # ScannerClient ABC
+│   │   │   │       ├── registry.py # Provider registry
+│   │   │   │       ├── tenable.py  # Tenable.io connector
+│   │   │   │       └── qualys.py   # Qualys VMDR connector
+│   │   │   └── llm/                # LLM abstraction (Anthropic, OpenAI, Gemini, Ollama)
 │   │   ├── api/
-│   │   │   ├── deps.py        # FastAPI dependency injection
-│   │   │   └── routes/        # Auth, vulnerabilities, org settings, remediation, reports
-│   │   ├── models/            # SQLAlchemy ORM models
-│   │   ├── schemas/           # Pydantic request/response schemas
-│   │   └── services/          # Business logic (ingestion, enrichment, scoring, remediation, reports)
+│   │   │   ├── deps.py
+│   │   │   └── routes/
+│   │   │       ├── auth.py
+│   │   │       ├── vulnerabilities.py
+│   │   │       ├── assets.py
+│   │   │       ├── scanner_connections.py
+│   │   │       ├── org_settings.py
+│   │   │       ├── remediation.py
+│   │   │       └── reports.py
+│   │   ├── models/
+│   │   │   ├── scanner_connection.py
+│   │   │   └── ...
+│   │   ├── schemas/
+│   │   │   ├── scanner_connection.py
+│   │   │   └── ...
+│   │   └── services/
+│   │       ├── scanner_connection.py   # CRUD + run_sync()
+│   │       ├── vulnerability.py        # ingest_batch() (used by connectors)
+│   │       └── ...
 │   └── tests/
-│       ├── conftest.py        # SQLite in-memory + mock Redis fixtures
-│       └── test_phase*.py     # Phase-by-phase test suites
+│       ├── conftest.py
+│       ├── test_auth.py
+│       ├── test_phase2.py – test_phase8.py
+│       ├── test_scanner_connectors.py
+│       └── test_assets.py
 └── frontend/
-    ├── package.json
-    └── src/
-        ├── app/               # Next.js App Router pages
-        ├── components/        # shadcn/ui components
-        ├── contexts/          # React context (auth state)
-        ├── lib/               # API client, utilities
-        └── types/             # TypeScript type definitions
+    ├── src/
+    │   ├── app/
+    │   │   ├── page.tsx                    # Landing page
+    │   │   ├── (dashboard)/
+    │   │   │   ├── assets/
+    │   │   │   ├── findings/
+    │   │   │   ├── reports/
+    │   │   │   ├── remediation/
+    │   │   │   └── settings/
+    │   │   │       └── connectors/page.tsx # Scanner connections UI
+    │   │   └── api/v1/[...path]/route.ts   # Next.js server-side proxy
+    │   ├── components/
+    │   │   ├── theme-toggle.tsx
+    │   │   └── ui/
+    │   ├── contexts/
+    │   │   ├── AuthContext.tsx
+    │   │   └── ThemeContext.tsx
+    │   └── lib/api.ts
+    └── public/
+        └── screenshots/
 ```
 
 ---
@@ -640,48 +713,63 @@ Vuln_ops/
 ## Quick Start (End-to-End)
 
 ```bash
-# 1. Start services
+# 1. Start
 docker compose up -d
-
-# 2. Apply migrations
 docker compose exec backend alembic upgrade head
 
-# 3. Register your org and first admin user
+# 2. Register org + admin
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@myorg.com", "password": "SecurePass123!", "org_name": "My Org"}'
 
-# 4. Login to get a token
+# 3. Get token
 TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@myorg.com", "password": "SecurePass123!"}' \
   | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
 
-# 5. Configure your LLM provider
+# 4. Configure LLM
 curl -X PATCH http://localhost:8000/api/v1/org/settings \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"ai_provider": "anthropic", "ai_model": "claude-sonnet-4-6", "ai_api_key": "sk-ant-..."}'
 
-# 6. Ingest vulnerabilities from CSV
+# 5a. Add a scanner connector (pulls findings automatically)
+curl -X POST http://localhost:8000/api/v1/scanner-connections/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Prod Tenable", "provider": "tenable", "config": {"access_key": "…", "secret_key": "…"}, "enabled": true}'
+
+# 5b. Or ingest from CSV
 curl -X POST http://localhost:8000/api/v1/vulnerabilities/ingest/csv \
   -H "Authorization: Bearer $TOKEN" \
   -F "file=@your_vulns.csv"
 
-# 7. Enrich with KEV + EPSS + NVD data
+# 6. Enrich with KEV + EPSS + NVD
 curl -X POST http://localhost:8000/api/v1/vulnerabilities/enrich \
   -H "Authorization: Bearer $TOKEN"
 
-# 8. Score all vulnerabilities with the LLM triage agent
+# 7. AI-score all findings
 curl -X POST http://localhost:8000/api/v1/vulnerabilities/score \
   -H "Authorization: Bearer $TOKEN"
 
-# 9. Get the dashboard
+# 8. Get the dashboard
 curl http://localhost:8000/api/v1/reports/dashboard \
   -H "Authorization: Bearer $TOKEN"
 
-# 10. Download the PDF report
+# 9. Download PDF report
 curl http://localhost:8000/api/v1/reports/dashboard/pdf \
   -H "Authorization: Bearer $TOKEN" \
   -o dashboard.pdf
 ```
+
+---
+
+## Contributing
+
+Issues and PRs welcome at https://github.com/cybersecbalaji/vulnops.  
+This is an experimental side project — scope is intentionally focused. See `CONTRIBUTING.md` for guidelines.
+
+## License
+
+[Apache 2.0](LICENSE) — free to use, modify, and distribute.
