@@ -27,6 +27,11 @@
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --shadow-premium: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+    /* Premium amber accent — terminal-grade, uncommon in dev tools. */
+    --accent-amber: 32 95% 35%;       /* amber-700 */
+    --accent-amber-fg: 38 92% 50%;    /* amber-500 */
+    /* Warm ivory background (replaces pure white for richer feel) */
+    --warm-bg: 48 33% 97%;
   }
 
   .dark {
@@ -52,6 +57,9 @@
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     --shadow-premium: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --accent-amber: 38 92% 50%;       /* brighter amber-500 for dark bg */
+    --accent-amber-fg: 43 96% 56%;    /* amber-400 */
+    --warm-bg: 30 5% 8%;              /* warm near-black */
   }
 }
 
@@ -63,6 +71,14 @@
 }
 .dark .hero-dot-grid {
   background-image: radial-gradient(circle, #374151 1px, transparent 1px);
+}
+
+/* Warm amber glow used behind the hero headline + screenshot frame */
+.amber-glow {
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--accent-amber-fg) / 0.18), transparent 70%);
+}
+.dark .amber-glow {
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, hsl(var(--accent-amber-fg) / 0.12), transparent 70%);
 }
 
 @layer base {

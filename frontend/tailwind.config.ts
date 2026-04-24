@@ -50,6 +50,14 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Landing-page brand accent (warm amber) — distinct from existing blue primary
+        brand: {
+          DEFAULT: "hsl(var(--accent-amber))",
+          fg: "hsl(var(--accent-amber-fg))",
+        },
+        surface: {
+          warm: "hsl(var(--warm-bg))",
+        },
         // Severity / priority colours used throughout the app
         severity: {
           critical: "#dc2626",

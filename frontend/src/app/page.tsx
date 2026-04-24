@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Shield, FileInput, Radar, ListOrdered, GitPullRequestArrow,
   BarChart3, ScrollText, Plug, Lock, KeyRound, ShieldCheck,
-  FileCheck2, ArrowUpRight, Github, ArrowRight,
+  FileCheck2, ArrowUpRight, Github, ArrowRight, BookOpen,
 } from "lucide-react";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -79,6 +80,8 @@ const SECURITY_CLAIMS = [
   { icon: FileCheck2, label: "Full audit log", sub: "Immutable, append-only" },
 ];
 
+const REPO_URL = "https://github.com/tekybala/vulnops";
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -105,31 +108,29 @@ export default function HomePage() {
   }, []);
 
   if (isAuthenticated) {
-    return <div className="min-h-screen bg-white dark:bg-[#0A0A0B]" />;
+    return <div className="min-h-screen bg-surface-warm" />;
   }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 dark:bg-[#0A0A0B] dark:text-gray-50">
+    <div className="min-h-screen bg-surface-warm text-gray-900 dark:text-gray-50">
 
       {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-gray-800 dark:bg-[#0A0A0B]/80">
+      <header className="sticky top-0 z-50 border-b border-gray-200/70 bg-surface-warm/80 backdrop-blur-md dark:border-gray-800/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          {/* Wordmark */}
           <div className="flex items-center gap-2.5">
-            <Shield strokeWidth={1.5} className="h-5 w-5 text-gray-900 dark:text-gray-50" />
+            <Shield strokeWidth={1.5} className="h-5 w-5 text-brand dark:text-brand-fg" />
             <span className="text-sm font-semibold tracking-tight">VulnOps</span>
-            <span className="hidden rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-400 sm:inline dark:border-gray-700 dark:bg-gray-900 dark:text-gray-500">
+            <span className="hidden rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 font-mono text-[10px] text-amber-800 sm:inline dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-400">
               Apache 2.0
             </span>
           </div>
 
-          {/* Nav links */}
           <nav className="hidden items-center gap-6 text-sm text-gray-500 md:flex dark:text-gray-400">
             <a href="#features" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Product</a>
             <a href="#connectors" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Integrations</a>
             <a href="#deploy" className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors">Self-host</a>
             <a
-              href="https://github.com/tekybala/vulnops"
+              href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-gray-900 dark:hover:text-gray-50 transition-colors"
@@ -138,7 +139,6 @@ export default function HomePage() {
             </a>
           </nav>
 
-          {/* Actions */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link href="/login">
@@ -156,29 +156,30 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-gray-200 dark:border-gray-800">
-        {/* Dot grid background */}
+      <section className="relative overflow-hidden">
+        {/* Warm amber glow behind headline */}
+        <div className="amber-glow pointer-events-none absolute inset-x-0 top-0 h-[600px]" />
+        {/* Dot grid */}
         <div className="hero-dot-grid pointer-events-none absolute inset-0" />
 
-        <div className="relative mx-auto max-w-5xl px-6 pb-28 pt-24 text-center">
-          {/* Eyebrow pill */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3.5 py-1 font-mono text-xs font-medium text-violet-700 dark:border-violet-800/50 dark:bg-violet-950/40 dark:text-violet-400">
-            Open source · Now with scanner APIs
+        <div className="relative mx-auto max-w-5xl px-6 pb-16 pt-24 text-center">
+          {/* Eyebrow */}
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3.5 py-1 font-mono text-xs font-medium text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-600 dark:bg-amber-400" />
+            Open source · Self-hosted · Scanner APIs
           </div>
 
           {/* Headline */}
-          <h1
-            className="mx-auto max-w-3xl text-5xl font-bold leading-[1.08] tracking-[-0.035em] text-gray-900 sm:text-6xl lg:text-[72px] dark:text-gray-50"
-          >
+          <h1 className="mx-auto max-w-3xl text-5xl font-bold leading-[1.08] tracking-[-0.035em] text-gray-900 sm:text-6xl lg:text-[72px] dark:text-gray-50">
             Triage vulnerabilities
             <br />
-            at the speed of scale.
+            at the speed of <span className="text-brand dark:text-brand-fg">scale.</span>
           </h1>
 
           {/* Subline */}
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-gray-600 dark:text-gray-400">
             The open-source vulnerability triage console.
-            Self-host in minutes, or use our hosted edition.
+            Self-host in minutes on your own infrastructure.
           </p>
 
           {/* CTAs */}
@@ -189,32 +190,26 @@ export default function HomePage() {
                 <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
               </button>
             </Link>
-            <Link href="/login">
-              <button className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900">
-                View live demo
-                <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
-              </button>
-            </Link>
             <a
-              href="https://github.com/tekybala/vulnops"
+              href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-amber-500 dark:hover:text-amber-400"
             >
               <Github strokeWidth={1.5} className="h-4 w-4" />
               Star on GitHub
               {stars !== "—" && (
-                <span className="ml-0.5 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <span className="ml-0.5 rounded bg-amber-50 px-1.5 py-0.5 font-mono text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-400">
                   {stars}
                 </span>
               )}
             </a>
           </div>
 
-          {/* Docker compose snippet */}
-          <div className="mx-auto mt-8 inline-flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900">
-            <span className="font-mono text-xs text-gray-400 dark:text-gray-500">$</span>
-            <span className="font-mono text-xs text-gray-700 dark:text-gray-300">
+          {/* Terminal command snippet */}
+          <div className="mx-auto mt-8 inline-flex items-center gap-3 rounded-md border border-gray-200 border-l-2 border-l-amber-600 bg-white px-4 py-2.5 shadow-sm dark:border-gray-800 dark:border-l-amber-500 dark:bg-gray-900">
+            <span className="font-mono text-xs text-amber-700 dark:text-amber-400">$</span>
+            <span className="font-mono text-xs text-gray-800 dark:text-gray-200">
               docker compose up -d
             </span>
             <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
@@ -224,15 +219,50 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Product screenshot ── */}
+      <section className="relative pb-24">
+        <div className="relative mx-auto max-w-6xl px-6">
+          {/* Amber glow under screenshot */}
+          <div className="amber-glow pointer-events-none absolute inset-x-0 top-1/4 h-[70%] blur-2xl" />
+
+          <div className="relative rounded-xl border border-gray-200 bg-white shadow-[0_10px_60px_-15px_rgba(180,83,9,0.25)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[0_10px_60px_-15px_rgba(245,158,11,0.15)]">
+            {/* Browser chrome */}
+            <div className="flex items-center gap-1.5 border-b border-gray-200 px-4 py-2.5 dark:border-gray-800">
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+              <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+              <span className="ml-3 flex-1 rounded bg-gray-50 px-3 py-0.5 text-left font-mono text-xs text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                app.vulnops.dev/findings
+              </span>
+            </div>
+            {/* Image */}
+            <div className="overflow-hidden rounded-b-xl bg-white dark:bg-gray-900">
+              <Image
+                src="/screenshots/findings.png"
+                alt="VulnOps findings queue — CVE triage with severity, CVSS, EPSS, KEV, AI priority"
+                width={1280}
+                height={800}
+                priority
+                className="h-auto w-full"
+              />
+            </div>
+          </div>
+
+          <p className="mt-6 text-center font-mono text-xs text-gray-500 dark:text-gray-400">
+            live/findings · automatically ranked by KEV + EPSS + asset context
+          </p>
+        </div>
+      </section>
+
       {/* ── Scanner logo strip ── */}
-      <section className="border-b border-gray-200 py-8 dark:border-gray-800">
+      <section className="border-y border-gray-200 bg-white py-10 dark:border-gray-800 dark:bg-gray-900/30">
         <div className="mx-auto max-w-7xl px-6 text-center">
-          <p className="mb-6 font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+          <p className="mb-6 font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
             Integrates with the tools you already run
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-50 grayscale">
+          <div className="flex flex-wrap items-center justify-center gap-10">
             {["Tenable", "Qualys", "Rapid7", "Nessus", "Microsoft Defender"].map((name) => (
-              <span key={name} className="text-sm font-semibold tracking-wide text-gray-600 dark:text-gray-400">
+              <span key={name} className="text-sm font-semibold tracking-wide text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-500 dark:hover:text-gray-200">
                 {name}
               </span>
             ))}
@@ -241,31 +271,36 @@ export default function HomePage() {
       </section>
 
       {/* ── Feature grid ── */}
-      <section id="features" className="border-b border-gray-200 py-24 dark:border-gray-800">
+      <section id="features" className="bg-white py-24 dark:bg-gray-900/30">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-xl text-center">
+            <p className="mb-3 font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
+              Capabilities
+            </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
               Everything your team needs
             </h2>
-            <p className="mt-4 text-gray-500 dark:text-gray-400">
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
               From ingestion to closure — the full vulnerability lifecycle in one tool.
             </p>
           </div>
 
-          <div className="mt-16 grid gap-px border border-gray-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-gray-800">
+          <div className="mt-16 grid gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 sm:grid-cols-2 lg:grid-cols-3 dark:border-gray-800 dark:bg-gray-800">
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="group bg-white p-8 transition-shadow hover:shadow-premium dark:bg-[#0A0A0B]"
+                className="group relative bg-white p-8 transition-all hover:bg-amber-50/30 dark:bg-gray-900 dark:hover:bg-amber-950/10"
               >
-                <f.icon
-                  strokeWidth={1.5}
-                  className="mb-5 h-6 w-6 text-gray-400 transition-colors group-hover:text-gray-700 dark:text-gray-500 dark:group-hover:text-gray-300"
-                />
-                <h3 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-50">
+                <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100 dark:border-amber-900/60 dark:bg-amber-950/30 dark:group-hover:border-amber-700 dark:group-hover:bg-amber-950/60">
+                  <f.icon
+                    strokeWidth={1.5}
+                    className="h-5 w-5 text-amber-700 dark:text-amber-400"
+                  />
+                </div>
+                <h3 className="mb-2 text-base font-semibold text-gray-900 dark:text-gray-50">
                   {f.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
                   {f.desc}
                 </p>
               </div>
@@ -275,67 +310,67 @@ export default function HomePage() {
       </section>
 
       {/* ── Scanner connectors ── */}
-      <section id="connectors" className="border-b border-gray-200 py-24 dark:border-gray-800">
+      <section id="connectors" className="bg-surface-warm py-24">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid items-center gap-16 lg:grid-cols-2">
-            {/* Left */}
             <div>
-              <Plug
-                strokeWidth={1.5}
-                className="mb-5 h-6 w-6 text-gray-400 dark:text-gray-500"
-              />
+              <div className="mb-5 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30">
+                <Plug strokeWidth={1.5} className="h-5 w-5 text-amber-700 dark:text-amber-400" />
+              </div>
               <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
                 Connect your scanners.
                 <br />
-                Skip the CSVs.
+                <span className="text-brand dark:text-brand-fg">Skip the CSVs.</span>
               </h2>
-              <p className="mt-5 max-w-md text-gray-500 leading-relaxed dark:text-gray-400">
+              <p className="mt-5 max-w-md leading-relaxed text-gray-600 dark:text-gray-400">
                 VulnOps pulls findings directly from scanner APIs on a schedule you control.
-                Credentials are stored encrypted per-org using field-level Fernet encryption
-                — they never leave your instance.
+                Credentials are stored encrypted per-org using field-level Fernet encryption —
+                they never leave your instance.
               </p>
               <Link href="/register">
-                <button className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-gray-900 underline-offset-4 hover:underline dark:text-gray-50">
+                <button className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-amber-800 underline-offset-4 hover:underline dark:text-amber-400">
                   Set up a connector
                   <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
                 </button>
               </Link>
             </div>
 
-            {/* Right — provider list */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900">
-              <p className="mb-4 font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-premium dark:border-gray-800 dark:bg-gray-900">
+              <p className="mb-4 font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
                 Available connectors
               </p>
               <div className="space-y-3">
-                {CONNECTORS.map((c) => (
-                  <div
-                    key={c.name}
-                    className="flex items-center justify-between border-b border-gray-200 pb-3 last:border-0 last:pb-0 dark:border-gray-800"
-                  >
-                    <div className="flex items-center gap-2.5">
+                {CONNECTORS.map((c) => {
+                  const isLive = c.status === "live";
+                  return (
+                    <div
+                      key={c.name}
+                      className="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 last:pb-0 dark:border-gray-800"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isLive
+                              ? "bg-amber-600 dark:bg-amber-400 ring-2 ring-amber-200 dark:ring-amber-900/60"
+                              : "bg-gray-300 dark:bg-gray-600"
+                          }`}
+                        />
+                        <span className="font-mono text-sm text-gray-800 dark:text-gray-200">
+                          {c.name}
+                        </span>
+                      </div>
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          c.status === "live"
-                            ? "bg-emerald-500"
-                            : "bg-gray-300 dark:bg-gray-600"
+                        className={`font-mono text-xs ${
+                          isLive
+                            ? "text-amber-700 dark:text-amber-400"
+                            : "text-gray-400 dark:text-gray-500"
                         }`}
-                      />
-                      <span className="font-mono text-sm text-gray-700 dark:text-gray-300">
-                        {c.name}
+                      >
+                        {c.status}
                       </span>
                     </div>
-                    <span
-                      className={`font-mono text-xs ${
-                        c.status === "live"
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-gray-400 dark:text-gray-500"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -343,136 +378,107 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ── */}
-      <section id="deploy" className="border-b border-gray-200 py-24 dark:border-gray-800">
+      <section id="deploy" className="bg-white py-24 dark:bg-gray-900/30">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-xl text-center">
+            <p className="mb-3 font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
+              Getting started
+            </p>
             <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
               Up and running in minutes
             </h2>
-            <p className="mt-4 text-gray-500 dark:text-gray-400">
+            <p className="mt-4 text-gray-600 dark:text-gray-400">
               Three steps from clone to production.
             </p>
           </div>
 
-          <div className="mt-16 grid gap-px border border-gray-200 sm:grid-cols-3 dark:border-gray-800">
+          <div className="mt-16 grid gap-8 sm:grid-cols-3">
             {STEPS.map((s) => (
-              <div key={s.n} className="bg-white p-8 dark:bg-[#0A0A0B]">
-                <p className="mb-5 font-mono text-xs text-gray-400 dark:text-gray-500">{s.n}</p>
+              <div key={s.n} className="relative rounded-xl border border-gray-200 bg-white p-8 transition-shadow hover:shadow-premium dark:border-gray-800 dark:bg-gray-900">
+                <p className="mb-5 font-mono text-2xl font-bold text-amber-700 dark:text-amber-400">
+                  {s.n}
+                </p>
                 <h3 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-50">
                   {s.title}
                 </h3>
-                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{s.desc}</p>
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                  {s.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Self-host vs hosted ── */}
-      <section className="border-b border-gray-200 py-24 dark:border-gray-800">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-xl text-center">
-            <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
-              Your data, your infra — or ours.
-            </h2>
-            <p className="mt-4 text-gray-500 dark:text-gray-400">
-              Same code, same features. The hosted edition runs the OSS build.
-            </p>
+      {/* ── Built in the open (replaces pricing) ── */}
+      <section className="bg-surface-warm py-24">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <p className="mb-4 font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
+            An experimental side project
+          </p>
+          <h2 className="text-3xl font-bold tracking-[-0.025em] text-gray-900 dark:text-gray-50 sm:text-4xl">
+            Built in the open. <span className="text-brand dark:text-brand-fg">Free forever.</span>
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600 dark:text-gray-400">
+            VulnOps is an open-source side project. No hosted edition, no pricing tiers,
+            no lock-in. Clone it, run it on your own infrastructure, fork it if you need to.
+          </p>
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+            >
+              <Github strokeWidth={1.5} className="h-4 w-4" />
+              Clone the repo
+            </a>
+            <a
+              href={`${REPO_URL}#readme`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-5 text-sm font-medium text-gray-700 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-amber-500 dark:hover:text-amber-400"
+            >
+              <BookOpen strokeWidth={1.5} className="h-4 w-4" />
+              Read the docs
+              <ArrowUpRight strokeWidth={1.5} className="h-4 w-4" />
+            </a>
           </div>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:gap-8">
-            {/* Self-host card */}
-            <div className="rounded-lg border border-gray-200 p-8 dark:border-gray-800">
-              <div className="mb-1 text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500">
-                Self-host
+          {/* Open-source facts strip */}
+          <div className="mx-auto mt-12 grid max-w-2xl grid-cols-3 gap-6 border-t border-gray-200 pt-8 dark:border-gray-800">
+            {[
+              { n: "Apache 2.0", l: "Permissive license" },
+              { n: "0", l: "Telemetry / callbacks" },
+              { n: "∞", l: "Users · scans · orgs" },
+            ].map((s) => (
+              <div key={s.l} className="text-center">
+                <p className="font-mono text-xl font-bold text-amber-700 dark:text-amber-400">{s.n}</p>
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">{s.l}</p>
               </div>
-              <div className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-50">
-                Free forever.
-              </div>
-              <div className="mt-1 font-mono text-sm text-gray-500 dark:text-gray-400">
-                Apache 2.0
-              </div>
-              <ul className="mt-6 space-y-2.5">
-                {[
-                  "Unlimited users and scans",
-                  "All connectors included",
-                  "No telemetry, no callbacks",
-                  "Full source on GitHub",
-                  "Docker Compose or bare-metal",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="https://github.com/tekybala/vulnops"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-8 inline-flex items-center gap-2 rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
-              >
-                <Github strokeWidth={1.5} className="h-4 w-4" />
-                Clone the repo
-              </a>
-            </div>
-
-            {/* Hosted card */}
-            <div className="rounded-lg border border-gray-200 p-8 dark:border-gray-800">
-              <div className="flex items-center gap-2">
-                <div className="text-xs font-mono uppercase tracking-widest text-gray-400 dark:text-gray-500">
-                  Hosted
-                </div>
-                <span className="rounded-full bg-violet-50 px-2 py-0.5 font-mono text-[10px] font-medium text-violet-700 dark:bg-violet-950/40 dark:text-violet-400">
-                  Coming soon
-                </span>
-              </div>
-              <div className="mt-3 text-2xl font-bold text-gray-900 dark:text-gray-50">
-                Zero ops.
-              </div>
-              <div className="mt-1 font-mono text-sm text-gray-500 dark:text-gray-400">
-                Managed by us
-              </div>
-              <ul className="mt-6 space-y-2.5">
-                {[
-                  "Same feature set as self-host",
-                  "Automatic updates and backups",
-                  "SSO on request",
-                  "SLA and support tiers",
-                  "Affordable monthly pricing",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="h-1 w-1 rounded-full bg-gray-400 dark:bg-gray-500" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register">
-                <button className="mt-8 inline-flex items-center gap-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
-                  Join the waitlist
-                  <ArrowRight strokeWidth={1.5} className="h-4 w-4" />
-                </button>
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── Security strip ── */}
-      <section className="border-b border-gray-200 py-16 dark:border-gray-800">
+      <section className="bg-white py-16 dark:bg-gray-900/30">
         <div className="mx-auto max-w-7xl px-6">
-          <p className="mb-8 text-center font-mono text-xs uppercase tracking-widest text-gray-400 dark:text-gray-500">
+          <p className="mb-10 text-center font-mono text-xs uppercase tracking-widest text-amber-700 dark:text-amber-500">
             Built for security teams
           </p>
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
             {SECURITY_CLAIMS.map((c) => (
               <div key={c.label} className="text-center">
-                <c.icon
-                  strokeWidth={1.5}
-                  className="mx-auto mb-2.5 h-5 w-5 text-gray-400 dark:text-gray-500"
-                />
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{c.label}</p>
-                <p className="mt-0.5 font-mono text-xs text-gray-400 dark:text-gray-500">{c.sub}</p>
+                <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30">
+                  <c.icon
+                    strokeWidth={1.5}
+                    className="h-5 w-5 text-amber-700 dark:text-amber-400"
+                  />
+                </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-50">{c.label}</p>
+                <p className="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-500">{c.sub}</p>
               </div>
             ))}
           </div>
@@ -480,12 +486,14 @@ export default function HomePage() {
       </section>
 
       {/* ── Final CTA ── */}
-      <section className="py-24">
-        <div className="mx-auto max-w-2xl px-6 text-center">
+      <section className="relative overflow-hidden bg-surface-warm py-24">
+        <div className="amber-glow pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto max-w-2xl px-6 text-center">
           <h2 className="text-4xl font-bold tracking-[-0.035em] text-gray-900 dark:text-gray-50 sm:text-5xl">
-            Ship the fix,<br />not the spreadsheet.
+            Ship the fix,<br />
+            <span className="text-brand dark:text-brand-fg">not the spreadsheet.</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-md text-lg text-gray-500 dark:text-gray-400">
+          <p className="mx-auto mt-5 max-w-md text-lg text-gray-600 dark:text-gray-400">
             Open source. Free forever. Running on your infra.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -496,10 +504,10 @@ export default function HomePage() {
               </button>
             </Link>
             <a
-              href="https://github.com/tekybala/vulnops"
+              href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-200 px-6 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+              className="inline-flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-6 text-sm font-medium text-gray-700 transition-colors hover:border-amber-400 hover:text-amber-800 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-amber-500 dark:hover:text-amber-400"
             >
               <Github strokeWidth={1.5} className="h-4 w-4" />
               Star on GitHub
@@ -509,21 +517,19 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-gray-200 py-12 dark:border-gray-800">
+      <footer className="border-t border-gray-200 bg-white py-12 dark:border-gray-800 dark:bg-gray-900/50">
         <div className="mx-auto max-w-7xl px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Brand */}
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Shield strokeWidth={1.5} className="h-4 w-4 text-gray-900 dark:text-gray-50" />
+              <div className="mb-4 flex items-center gap-2">
+                <Shield strokeWidth={1.5} className="h-4 w-4 text-brand dark:text-brand-fg" />
                 <span className="text-sm font-semibold text-gray-900 dark:text-gray-50">VulnOps</span>
               </div>
-              <p className="text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-                Open-source vulnerability triage console for security teams.
+              <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                Open-source vulnerability triage console. An experimental side project.
               </p>
             </div>
 
-            {/* Product */}
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
                 Product
@@ -532,9 +538,10 @@ export default function HomePage() {
                 {[
                   { label: "Sign in", href: "/login" },
                   { label: "Register", href: "/register" },
+                  { label: "Integrations", href: "#connectors" },
                 ].map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50">
+                    <Link href={l.href} className="text-xs text-gray-500 hover:text-amber-800 transition-colors dark:text-gray-400 dark:hover:text-amber-400">
                       {l.label}
                     </Link>
                   </li>
@@ -542,24 +549,23 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Open Source */}
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
                 Open Source
               </p>
               <ul className="space-y-2.5">
                 {[
-                  { label: "GitHub", href: "https://github.com/tekybala/vulnops" },
-                  { label: "Apache 2.0 License", href: "https://github.com/tekybala/vulnops/blob/main/LICENSE" },
-                  { label: "Contributing", href: "https://github.com/tekybala/vulnops/blob/main/CONTRIBUTING.md" },
-                  { label: "Security Policy", href: "https://github.com/tekybala/vulnops/blob/main/SECURITY.md" },
+                  { label: "GitHub", href: REPO_URL },
+                  { label: "Apache 2.0 License", href: `${REPO_URL}/blob/main/LICENSE` },
+                  { label: "Contributing", href: `${REPO_URL}/blob/main/CONTRIBUTING.md` },
+                  { label: "Security Policy", href: `${REPO_URL}/blob/main/SECURITY.md` },
                 ].map((l) => (
                   <li key={l.label}>
                     <a
                       href={l.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50"
+                      className="text-xs text-gray-500 hover:text-amber-800 transition-colors dark:text-gray-400 dark:hover:text-amber-400"
                     >
                       {l.label}
                     </a>
@@ -568,7 +574,6 @@ export default function HomePage() {
               </ul>
             </div>
 
-            {/* Legal */}
             <div>
               <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-900 dark:text-gray-50">
                 Legal
@@ -579,7 +584,7 @@ export default function HomePage() {
                   { label: "Terms of Service", href: "#" },
                 ].map((l) => (
                   <li key={l.label}>
-                    <a href={l.href} className="text-xs text-gray-500 hover:text-gray-900 transition-colors dark:text-gray-400 dark:hover:text-gray-50">
+                    <a href={l.href} className="text-xs text-gray-500 hover:text-amber-800 transition-colors dark:text-gray-400 dark:hover:text-amber-400">
                       {l.label}
                     </a>
                   </li>
@@ -589,7 +594,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10 border-t border-gray-200 pt-6 dark:border-gray-800">
-            <p className="font-mono text-xs text-gray-400 dark:text-gray-500">
+            <p className="font-mono text-xs text-gray-500 dark:text-gray-500">
               © {new Date().getFullYear()} VulnOps — Apache 2.0
             </p>
           </div>
