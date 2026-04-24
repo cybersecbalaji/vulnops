@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -219,37 +218,133 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Product screenshot ── */}
+      {/* ── Product mockup (enriched + AI-scored findings) ── */}
       <section className="relative pb-24">
-        <div className="relative mx-auto max-w-6xl px-6">
-          {/* Amber glow under screenshot */}
+        <div className="relative mx-auto max-w-5xl px-6">
+          {/* Amber glow under mockup */}
           <div className="amber-glow pointer-events-none absolute inset-x-0 top-1/4 h-[70%] blur-2xl" />
 
-          <div className="relative rounded-xl border border-gray-200 bg-white shadow-[0_10px_60px_-15px_rgba(180,83,9,0.25)] dark:border-gray-800 dark:bg-gray-900 dark:shadow-[0_10px_60px_-15px_rgba(245,158,11,0.15)]">
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-[0_10px_60px_-15px_rgba(180,83,9,0.25)] dark:border-gray-800 dark:bg-gray-950 dark:shadow-[0_10px_60px_-15px_rgba(245,158,11,0.15)]">
             {/* Browser chrome */}
-            <div className="flex items-center gap-1.5 border-b border-gray-200 px-4 py-2.5 dark:border-gray-800">
+            <div className="flex items-center gap-1.5 border-b border-gray-200 bg-gray-50/80 px-4 py-2.5 dark:border-gray-800 dark:bg-gray-900">
               <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
               <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
               <span className="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-gray-700" />
-              <span className="ml-3 flex-1 rounded bg-gray-50 px-3 py-0.5 text-left font-mono text-xs text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+              <span className="ml-3 flex-1 rounded bg-white px-3 py-0.5 text-left font-mono text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-500">
                 app.vulnops.dev/findings
               </span>
             </div>
-            {/* Image */}
-            <div className="overflow-hidden rounded-b-xl bg-white dark:bg-gray-900">
-              <Image
-                src="/screenshots/findings.png"
-                alt="VulnOps findings queue — CVE triage with severity, CVSS, EPSS, KEV, AI priority"
-                width={1280}
-                height={800}
-                priority
-                className="h-auto w-full"
-              />
+
+            {/* Findings table mockup */}
+            <div className="p-4 text-left text-xs">
+              {/* Stat bar */}
+              <div className="mb-3 flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-800 dark:bg-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">
+                  247 <span className="text-gray-400 dark:text-gray-500">findings</span>
+                </span>
+                <span className="font-semibold text-red-600 dark:text-red-400">
+                  12 <span className="font-normal text-gray-400 dark:text-gray-500">immediate</span>
+                </span>
+                <span className="font-semibold text-amber-700 dark:text-amber-400">
+                  8 <span className="font-normal text-gray-400 dark:text-gray-500">KEV listed</span>
+                </span>
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                  61 <span className="font-normal text-gray-400 dark:text-gray-500">remediated</span>
+                </span>
+              </div>
+
+              {/* Table header */}
+              <div
+                className="mb-1.5 grid grid-cols-[1.6fr_76px_52px_56px_46px_88px_80px] gap-2 border-b border-gray-200 pb-2 font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-500"
+                style={{ fontSize: "10px" }}
+              >
+                <span>CVE / Title</span>
+                <span>Severity</span>
+                <span>CVSS</span>
+                <span>EPSS</span>
+                <span>KEV</span>
+                <span>AI Priority</span>
+                <span>Status</span>
+              </div>
+
+              {/* Rows */}
+              {[
+                {
+                  cve: "CVE-2021-44228", title: "Log4Shell — Apache Log4j RCE",
+                  sev: "critical",
+                  sevBg: "text-red-700 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950/50 dark:border-red-900/60",
+                  cvss: "10.0", cvssColor: "text-red-700 dark:text-red-400",
+                  epss: "97.3%", epssColor: "text-red-700 font-semibold dark:text-red-400",
+                  kev: true,
+                  pri: "● Immediate", priColor: "text-red-700 dark:text-red-400",
+                  status: "open", statusColor: "text-gray-500 dark:text-gray-400",
+                },
+                {
+                  cve: "CVE-2024-3400", title: "PAN-OS Zero-Day — Command Injection",
+                  sev: "critical",
+                  sevBg: "text-red-700 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950/50 dark:border-red-900/60",
+                  cvss: "10.0", cvssColor: "text-red-700 dark:text-red-400",
+                  epss: "94.1%", epssColor: "text-red-700 font-semibold dark:text-red-400",
+                  kev: true,
+                  pri: "● Immediate", priColor: "text-red-700 dark:text-red-400",
+                  status: "triaged", statusColor: "text-amber-700 dark:text-amber-400",
+                },
+                {
+                  cve: "CVE-2023-34048", title: "VMware vCenter DCERPC Heap Overflow",
+                  sev: "critical",
+                  sevBg: "text-red-700 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950/50 dark:border-red-900/60",
+                  cvss: "9.8", cvssColor: "text-red-700 dark:text-red-400",
+                  epss: "88.6%", epssColor: "text-red-700 font-semibold dark:text-red-400",
+                  kev: true,
+                  pri: "● Immediate", priColor: "text-red-700 dark:text-red-400",
+                  status: "remediated", statusColor: "text-emerald-700 dark:text-emerald-400",
+                },
+                {
+                  cve: "CVE-2022-0847", title: "Dirty Pipe — Linux Kernel PrivEsc",
+                  sev: "high",
+                  sevBg: "text-orange-700 bg-orange-50 border border-orange-200 dark:text-orange-400 dark:bg-orange-950/50 dark:border-orange-900/60",
+                  cvss: "7.8", cvssColor: "text-orange-700 dark:text-orange-400",
+                  epss: "31.4%", epssColor: "text-orange-700 dark:text-orange-400",
+                  kev: false,
+                  pri: "● This week", priColor: "text-orange-700 dark:text-orange-400",
+                  status: "open", statusColor: "text-gray-500 dark:text-gray-400",
+                },
+                {
+                  cve: "CVE-2023-44487", title: "HTTP/2 Rapid Reset DDoS",
+                  sev: "high",
+                  sevBg: "text-orange-700 bg-orange-50 border border-orange-200 dark:text-orange-400 dark:bg-orange-950/50 dark:border-orange-900/60",
+                  cvss: "7.5", cvssColor: "text-orange-700 dark:text-orange-400",
+                  epss: "12.8%", epssColor: "text-gray-500 dark:text-gray-400",
+                  kev: false,
+                  pri: "● This week", priColor: "text-orange-700 dark:text-orange-400",
+                  status: "open", statusColor: "text-gray-500 dark:text-gray-400",
+                },
+              ].map((row) => (
+                <div
+                  key={row.cve}
+                  className="grid grid-cols-[1.6fr_76px_52px_56px_46px_88px_80px] items-center gap-2 border-b border-gray-100 py-2 last:border-0 dark:border-gray-800/60"
+                >
+                  <div className="min-w-0">
+                    <span className="font-mono text-gray-800 dark:text-gray-200">{row.cve}</span>
+                    <p className="mt-0.5 truncate text-gray-500 dark:text-gray-500">{row.title}</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-semibold capitalize ${row.sevBg}`}>
+                    ● {row.sev}
+                  </span>
+                  <span className={`font-mono font-semibold ${row.cvssColor}`}>{row.cvss}</span>
+                  <span className={`font-mono ${row.epssColor}`}>{row.epss}</span>
+                  <span className={row.kev ? "font-semibold text-amber-700 dark:text-amber-400" : "text-gray-400 dark:text-gray-600"}>
+                    {row.kev ? "Yes" : "No"}
+                  </span>
+                  <span className={`font-medium ${row.priColor}`}>{row.pri}</span>
+                  <span className={`font-medium capitalize ${row.statusColor}`}>{row.status}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           <p className="mt-6 text-center font-mono text-xs text-gray-500 dark:text-gray-400">
-            live/findings · automatically ranked by KEV + EPSS + asset context
+            app.vulnops.dev/findings · automatically ranked by KEV + EPSS + asset context
           </p>
         </div>
       </section>
