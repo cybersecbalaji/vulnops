@@ -42,3 +42,7 @@ python-dotenv==1.0.1
 
 # PDF generation
 fpdf2==2.8.3
+
+# Scheduler (optional scanner sync)
+apscheduler==3.10.4
+respx==0.21.1

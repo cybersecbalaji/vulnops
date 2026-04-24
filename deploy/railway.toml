@@ -1,0 +1,31 @@
+# VulnOps — Railway deployment config
+# Deploy from the Railway dashboard: New Project → Deploy from GitHub → select repo.
+# Railway will auto-detect this file.
+#
+# Services needed (add via Railway dashboard or railway CLI):
+#   1. Backend  (this config)
+#   2. Frontend (separate service, Vercel recommended — see DEPLOY.md)
+#   3. PostgreSQL plugin
+#   4. Redis plugin
+#
+# Required env vars to set in Railway backend service:
+#   DATABASE_URL         — auto-set by Railway Postgres plugin (${{Postgres.DATABASE_URL}})
+#   REDIS_URL            — auto-set by Railway Redis plugin (${{Redis.REDIS_URL}})
+#   JWT_PRIVATE_KEY      — generate with: python scripts/setup.py (copy from backend/.env)
+#   JWT_PUBLIC_KEY       — same
+#   MASTER_ENCRYPTION_KEY — same
+#   CORS_ORIGINS         — ["https://your-frontend.vercel.app"]
+#   APP_ENV              — production
+#   DEBUG                — false
+#   SCHEDULER_ENABLED    — false (use Railway cron or manual sync-now instead)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+startCommand = "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+healthcheckPath = "/ready"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

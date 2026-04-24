@@ -1,0 +1,4 @@
+cve_id,title,description,severity,cvss_score,affected_component
+CVE-2021-44228,Log4Shell,JNDI injection RCE in Log4j 2.x,critical,10.0,log4j-core:2.14.1
+CVE-2022-22965,Spring4Shell,RCE in Spring Framework via data binding,high,9.8,spring-core:5.3.17
+CVE-2023-44487,HTTP/2 Rapid Reset,DoS via rapid stream cancellation,high,7.5,nginx/1.18

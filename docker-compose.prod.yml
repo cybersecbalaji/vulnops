@@ -90,7 +90,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.prod      # Build a production Next.js image
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.yourdomain.com}
+        # BACKEND_URL is the server-side URL the Next.js Route Handler proxy
+        # uses to reach the backend container (internal Docker network).
+        # The browser never sees this URL — all API calls go through /api/v1/*.
+        BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
     container_name: vulnops_frontend
     restart: unless-stopped
     expose:

@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     MAX_LOGIN_ATTEMPTS: int = 10
     LOCKOUT_MINUTES: int = 15
 
+    # ── Scheduler ────────────────────────────────────────────────────────────
+    # When true, APScheduler runs scanner syncs every 6 hours automatically.
+    # Leave false when using an external cron or manual sync-now only.
+    SCHEDULER_ENABLED: bool = False
+    SCHEDULER_SYNC_INTERVAL_HOURS: int = 6
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | List[str]) -> List[str]:

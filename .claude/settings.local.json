@@ -79,7 +79,14 @@
       "Bash(npx ts-node *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://grand-youthfulness-production-3b33.up.railway.app/api/v1/\")",
+      "Bash(git commit -m 'Fix Playwright row click: scroll past sticky table header before clicking *)",
+      "Bash(timeout 250 bash -c \"while ! grep -q 'passed\\\\|failed\\\\|═══ 12\\\\.' 'C:\\\\Users\\\\rbala\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-rbala-Vuln-ops\\\\ddbbed9f-3ada-41ac-98d0-d3d3dc90ec50\\\\tasks\\\\b6bc30h28.output' 2>/dev/null; do sleep 10; done\")",
+      "Bash(timeout 260 bash -c \"while ! grep -q 'passed\\\\|failed\\\\|═══ 12\\\\.' 'C:\\\\Users\\\\rbala\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-rbala-Vuln-ops\\\\ddbbed9f-3ada-41ac-98d0-d3d3dc90ec50\\\\tasks\\\\b62fjvm0x.output' 2>/dev/null; do sleep 10; done\")",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/test_scanner_connectors.py -v)",
+      "Bash(python -m pytest tests/ -q)"
     ]
   }
 }

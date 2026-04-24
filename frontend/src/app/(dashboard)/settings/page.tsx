@@ -439,6 +439,21 @@ export default function SettingsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* ── Scanner Connectors ── */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Scanner Connectors</CardTitle>
+                <CardDescription>
+                  Connect to Tenable, Qualys, and other scanners for automatic finding sync.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/settings/connectors">
+                  <Button variant="outline">Manage connectors</Button>
+                </Link>
+              </CardContent>
+            </Card>
           </>
         )}
       </main>

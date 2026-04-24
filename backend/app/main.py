@@ -19,19 +19,86 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.api.routes import assets, auth, org_settings, remediation, reports, users, vulnerabilities
+from app.api.routes import assets, auth, org_settings, remediation, reports, scanner_connections, users, vulnerabilities
 from app.core.config import settings
-from app.db.session import engine, redis_client
+from app.db.session import AsyncSessionLocal, engine, get_db, redis_client
 import app.models  # noqa: F401 — ensures all ORM models register with Base.metadata
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
+async def _scheduled_sync_all() -> None:
+    """APScheduler job: sync every enabled scanner connection across all orgs."""
+    import logging
+    import json
+    from sqlalchemy import select
+    from app.core.encryption import FieldEncryption, MasterKeyEncryption, encryption_context
+    from app.db.session import AsyncSessionLocal
+    from app.models.organization import Organization
+    from app.models.scanner_connection import ScannerConnection
+    from app.services.scanner_connection import run_sync
+
+    log = logging.getLogger("vulnops.scheduler")
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(ScannerConnection).where(ScannerConnection.enabled == True)  # noqa: E712
+        )
+        connections = result.scalars().all()
+
+    master = MasterKeyEncryption(settings.MASTER_ENCRYPTION_KEY)
+
+    for conn in connections:
+        async with AsyncSessionLocal() as db:
+            try:
+                org_result = await db.execute(
+                    select(Organization).where(Organization.id == conn.org_id)
+                )
+                org = org_result.scalar_one_or_none()
+                if org is None:
+                    continue
+                dek = master.decrypt_dek(org.encrypted_dek)
+                field_enc = FieldEncryption(dek)
+                with encryption_context(field_enc):
+                    # Re-fetch conn inside the new session
+                    fresh = await db.get(ScannerConnection, conn.id)
+                    if fresh is None:
+                        continue
+                    await run_sync(db, conn.org_id, fresh, since=fresh.last_sync_at)
+                    log.info("Scheduled sync complete for connection %s", conn.id)
+            except Exception as exc:
+                log.error("Scheduled sync failed for connection %s: %s", conn.id, exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Startup: verify Redis is reachable
     await redis_client.ping()
+
+    scheduler = None
+    if settings.SCHEDULER_ENABLED:
+        try:
+            from apscheduler.schedulers.asyncio import AsyncIOScheduler
+            scheduler = AsyncIOScheduler()
+            scheduler.add_job(
+                _scheduled_sync_all,
+                "interval",
+                hours=settings.SCHEDULER_SYNC_INTERVAL_HOURS,
+                id="scanner_sync_all",
+                replace_existing=True,
+            )
+            scheduler.start()
+        except ImportError:
+            import logging
+            logging.getLogger("vulnops").warning(
+                "apscheduler not installed — SCHEDULER_ENABLED=true has no effect"
+            )
+
     yield
+
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+
     # Shutdown: close connections
     await engine.dispose()
     await redis_client.aclose()
@@ -171,10 +238,43 @@ def _add_routes(app: FastAPI) -> None:
         prefix=f"{settings.API_V1_STR}/reports",
         tags=["Reports"],
     )
+    app.include_router(
+        scanner_connections.router,
+        prefix=f"{settings.API_V1_STR}/scanner-connections",
+        tags=["Scanner Connections"],
+    )
 
     @app.get("/health", tags=["Health"])
     async def health_check() -> dict:
         return {"status": "ok", "service": "vulnops-api"}
+
+    @app.get("/ready", tags=["Health"])
+    async def readiness_check() -> dict:
+        """Readiness probe: verifies DB and Redis are reachable."""
+        checks: dict[str, str] = {}
+        ok = True
+
+        try:
+            async for db in get_db():
+                from sqlalchemy import text
+                await db.execute(text("SELECT 1"))
+            checks["db"] = "ok"
+        except Exception as exc:
+            checks["db"] = f"error: {exc}"
+            ok = False
+
+        try:
+            await redis_client.ping()
+            checks["redis"] = "ok"
+        except Exception as exc:
+            checks["redis"] = f"error: {exc}"
+            ok = False
+
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=200 if ok else 503,
+            content={"status": "ready" if ok else "not ready", "checks": checks},
+        )
 
 
 # ── Module-level app instance ─────────────────────────────────────────────────

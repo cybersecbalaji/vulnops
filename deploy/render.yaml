@@ -1,0 +1,52 @@
+# VulnOps — Render Blueprint
+# Deploy: render.com → New → Blueprint → point to this repo.
+# Render will provision all services in one click.
+#
+# Required: set these env vars manually after deploy in the Render dashboard:
+#   JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, MASTER_ENCRYPTION_KEY
+#   (generate with: python scripts/setup.py)
+
+services:
+  - type: web
+    name: vulnops-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /ready
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SCHEDULER_ENABLED
+        value: "false"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vulnops-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: vulnops-redis
+          type: redis
+          property: connectionString
+      - key: JWT_PRIVATE_KEY
+        sync: false   # set manually in dashboard
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: MASTER_ENCRYPTION_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: '["https://your-frontend.vercel.app"]'
+    buildCommand: "alembic upgrade head"
+
+databases:
+  - name: vulnops-db
+    plan: starter
+    databaseName: vulnops
+    user: vulnops
+
+  - name: vulnops-redis
+    type: redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru

@@ -5,7 +5,7 @@ VulnOps Triage Console — first-time setup script.
 Generates cryptographic secrets and writes a ready-to-use backend/.env file.
 Run from the project root:
 
-    python scripts/setup.py
+    python scripts/setup.py [--non-interactive]
 
 Python 3.11+ required (same as the backend).
 """
@@ -52,28 +52,25 @@ def generate_secrets() -> dict[str, str]:
     }
 
 
-def write_env(secrets: dict[str, str]) -> None:
+def write_env(secrets: dict[str, str], non_interactive: bool = False) -> None:
     if not ENV_EXAMPLE.exists():
         print(f"ERROR: {ENV_EXAMPLE} not found.")
         sys.exit(1)
 
-    if ENV_OUT.exists():
+    if ENV_OUT.exists() and not non_interactive:
         print(f"\nWARNING: {ENV_OUT} already exists.")
         answer = input("Overwrite it? [y/N] ").strip().lower()
         if answer != "y":
             print("Aborted. Existing .env was not changed.")
             sys.exit(0)
+    elif ENV_OUT.exists() and non_interactive:
+        print(f"Non-interactive mode: keeping existing {ENV_OUT}.")
+        return
 
     import re
 
     content = ENV_EXAMPLE.read_text(encoding="utf-8")
 
-    # Replace entire JWT key lines — the .env.example wraps the placeholder
-    # inside a partial PEM header/footer, so a simple string replacement would
-    # produce duplicate headers.  Replace the whole line instead.
-    #
-    # Use lambda replacements so re.sub does NOT interpret \n inside the
-    # PEM key as a real newline (regex replacement strings expand \n → newline).
     priv = secrets["JWT_PRIVATE_KEY"]
     pub  = secrets["JWT_PUBLIC_KEY"]
     content = re.sub(
@@ -99,32 +96,40 @@ def check_docker() -> bool:
 
 
 def main() -> None:
+    non_interactive = "--non-interactive" in sys.argv
+
     print("=" * 60)
     print("  VulnOps Triage Console — Setup")
     print("=" * 60)
 
     secrets = generate_secrets()
-    write_env(secrets)
+    write_env(secrets, non_interactive=non_interactive)
 
     print("\n" + "=" * 60)
     print("  Setup complete!")
     print("=" * 60)
     print("""
 Next steps:
-  1. Review backend/.env — the crypto secrets are filled in.
-     Optionally add your NVD_API_KEY for faster enrichment.
+  1. Review backend/.env — crypto secrets are already filled in.
+     Add your NVD_API_KEY for faster CVE enrichment (optional).
 
-  2. Start the stack:
+  2. Copy .env.example → .env and set POSTGRES_PASSWORD + DOMAIN:
+       cp .env.example .env
+
+  3. Start the stack (development):
        docker compose up -d
 
-  3. Run database migrations (first time only):
+     Or production:
+       docker compose -f docker-compose.prod.yml up -d
+
+  4. Run database migrations (first time only):
        docker compose exec backend alembic upgrade head
 
-  4. Open the app:
+  5. Open the app:
        Frontend → http://localhost:3000
-       API docs  → http://localhost:8000/api/docs
+       API docs  → http://localhost:8000/api/docs  (DEBUG=true only)
 
-  5. Register your first user at http://localhost:3000
+  6. Register your first user at http://localhost:3000
      (the first registered user becomes the org admin)
 """)
     if not check_docker():
